@@ -1,2 +1,2 @@
 # trustgrid-infra-as-code
-Infrastructure as code modules and examples for working with Trustgrid.io products
+This repository is intended to allow Trustgrid to share infrastructure as code modules and examples that our users can reference and build upon for their own environments. 
