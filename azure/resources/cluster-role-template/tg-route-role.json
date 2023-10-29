@@ -1,0 +1,24 @@
+{
+    "Name": "Trustgrid HA Route Role",
+    "Description": "Allows clustered Trustgrid nodes to perform HA routing actions",
+    "Actions": [
+                "Microsoft.Network/networkWatchers/nextHop/action",
+                "Microsoft.Network/networkInterfaces/effectiveRouteTable/action",
+                "Microsoft.Network/routeTables/routes/delete",
+                "Microsoft.Network/routeTables/routes/write",
+                "Microsoft.Network/routeTables/routes/read",
+                "Microsoft.Network/routeTables/join/action",
+                "Microsoft.Network/routeTables/delete",
+                "Microsoft.Network/routeTables/write",
+                "Microsoft.Network/routeTables/read",
+                "Microsoft.Network/networkInterfaces/read",
+                "Microsoft.Network/virtualNetworks/read",
+                "Microsoft.Compute/virtualMachines/read"
+    ],
+    "DataActions": [],
+    "NotDataActions": [
+    ],
+    "AssignableScopes": [
+        "/subscriptions/REPLACE"
+    ]
+}
