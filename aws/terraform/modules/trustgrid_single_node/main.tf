@@ -126,7 +126,7 @@ resource "aws_network_interface" "data_eni" {
 }
 
 resource "aws_eip" "mgmt_ip" {
-  vpc = true
+  domain = "vpc"
   network_interface = aws_network_interface.management_eni.id
 
   tags = {
