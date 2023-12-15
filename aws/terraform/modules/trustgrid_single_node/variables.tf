@@ -92,3 +92,10 @@ variable "tg_fqdn" {
   description = "FQDN of the Trustgrid Node associated with the license"
   
 }
+
+variable "tg_node_timeout" {
+  type = number
+  default = 600
+  description = "Number of seconds to wait to confirm the node is online via the Trustgrid API before failing"
+  
+}
