@@ -138,12 +138,3 @@ resource "aws_instance" "node" {
   }
 }
 
-data "tg_node" "node" {
-  fqdn = var.tg_fqdn
-  timeout = var.tg_node_timeout
-
-  depends_on = [
-    aws_instance.node
-  ]
-  
-}
