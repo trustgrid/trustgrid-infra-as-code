@@ -111,7 +111,6 @@ resource "aws_instance" "node" {
   instance_type = var.instance_type
   key_name = var.key_pair_name
 
-  user_data              = data.cloudinit_config.cloud_init.rendered
   iam_instance_profile   = data.aws_iam_instance_profile.instance_profile.name
 
   network_interface {
