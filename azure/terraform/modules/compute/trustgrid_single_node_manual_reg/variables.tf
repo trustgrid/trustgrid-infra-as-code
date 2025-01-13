@@ -24,7 +24,7 @@ variable "vm_size" {
 
 variable os_disk_size {
   type = number
-  description = "Size of the OS disk volume in GB"
+  description = "Size of the OS disk volume in GB. 30GB is the recommended minimum."
   default = 30 
 }
 

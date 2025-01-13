@@ -7,9 +7,6 @@ terraform {
   }
 }
 
-provider "azurerm" {
-  # Configuration options
-}
 ## Create Network Resources
 resource "azurerm_public_ip" "public_ip" {
   name                = "${var.name}-public-ip"
