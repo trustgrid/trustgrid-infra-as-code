@@ -41,6 +41,12 @@ variable "admin_ssh_key_pub" {
   sensitive = true
 }
 
+variable "availability_zone" {
+  type = string
+  description = "Availability Zone for the VM"
+  default = "1"  
+}
+
 ## Network Variables
 variable "public_subnet_id" {
   type        = string

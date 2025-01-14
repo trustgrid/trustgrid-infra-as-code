@@ -67,6 +67,7 @@ resource "azurerm_linux_virtual_machine" "node" {
   size                = var.vm_size
   admin_username      = "ubuntu"
   source_image_id     = data.azurerm_shared_image_gallery_image_version.tg_image.id
+  zone = var.availability_zone
 
   network_interface_ids = [
     azurerm_network_interface.public.id,
