@@ -6,6 +6,9 @@ terraform {
     }
   }
 }
+locals {
+  security_group_name = split("/", var.security_group_id)[8]
+}
 
 data "azurerm_resource_group" "rg" {
   name = split("/", var.security_group_id)[4]
@@ -29,7 +32,7 @@ resource "azurerm_network_security_rule" "data_plane_tcp" {
   source_address_prefix      = "*"
   destination_application_security_group_ids = [azurerm_application_security_group.trustgrid_gateway.id]
   resource_group_name         = data.azurerm_resource_group.rg.name
-  network_security_group_name = var.security_group_id
+  network_security_group_name = local.security_group_name
 }
 
 resource "azurerm_network_security_rule" "data_plane_udp" {
@@ -44,7 +47,7 @@ resource "azurerm_network_security_rule" "data_plane_udp" {
   source_address_prefix      = "*"
   destination_application_security_group_ids = [azurerm_application_security_group.trustgrid_gateway.id]
   resource_group_name         = data.azurerm_resource_group.rg.name
-  network_security_group_name = var.security_group_id
+  network_security_group_name = local.security_group_name
 }
 
 resource "azurerm_network_security_rule" "ztna" {
@@ -59,7 +62,7 @@ resource "azurerm_network_security_rule" "ztna" {
   source_address_prefix      = "*"
   destination_application_security_group_ids = [azurerm_application_security_group.trustgrid_gateway.id]
   resource_group_name         = data.azurerm_resource_group.rg.name
-  network_security_group_name = var.security_group_id
+  network_security_group_name = local.security_group_name
 }
 
 resource "azurerm_network_security_rule" "wireguard" {
@@ -74,5 +77,5 @@ resource "azurerm_network_security_rule" "wireguard" {
   source_address_prefix      = "*"
   destination_application_security_group_ids = [azurerm_application_security_group.trustgrid_gateway.id]
   resource_group_name         = data.azurerm_resource_group.rg.name
-  network_security_group_name = var.security_group_id
+  network_security_group_name = local.security_group_name
 }
