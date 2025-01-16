@@ -45,6 +45,10 @@ variable "availability_zone" {
   type = string
   description = "Availability Zone for the VM"
   default = "1"  
+  validation {
+    condition     = contains(["1", "2", "3"], var.availability_zone)
+    error_message = "Availability zone must be one of: 1, 2, or 3"
+  }
 }
 
 ## Network Variables
