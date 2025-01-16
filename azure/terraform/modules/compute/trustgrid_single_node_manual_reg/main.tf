@@ -55,11 +55,11 @@ resource "azurerm_network_interface_security_group_association" "private" {
 
 ## Compute Resources
 
-data "azurerm_shared_image_version" "tg_image" {
-   name                = var.tg_version
-   image_name  = "trustgrid-node-2204-${var.tg_tenant}"
-   gallery_name        = var.tg_image_gallery
-}
+## data "azurerm_shared_image_version" "tg_image" {
+##   name                = var.tg_version
+##   image_name  = "trustgrid-node-2204-${var.tg_tenant}"
+##   gallery_name        = var.tg_image_gallery
+## }
 
 resource "azurerm_linux_virtual_machine" "node" {
   name                = var.name
@@ -67,7 +67,7 @@ resource "azurerm_linux_virtual_machine" "node" {
   location            = var.location
   size                = var.vm_size
   admin_username      = "ubuntu"
-  source_image_id     = data.azurerm_shared_image_gallery_image_version.tg_image.id
+  source_image_id     = "/CommunityGalleries/${var.tg_image_gallery}/Images/trustgrid-node-2204-${var.tg_tenant}/Versions/${var.tg_version}"
   zone = var.availability_zone
 
   network_interface_ids = [
