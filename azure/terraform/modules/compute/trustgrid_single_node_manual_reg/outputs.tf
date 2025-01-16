@@ -29,7 +29,7 @@ output "public_nic_private_ip_address" {
 
 output "public_nic_mac_address" {
   description = "MAC address of the public interface"
-  value       = = lower(replace(azurerm_network_interface.public.mac_address, "-", ":"))
+  value       = lower(replace(azurerm_network_interface.public.mac_address, "-", ":"))
 }
 
 output "public_nic_id" {
