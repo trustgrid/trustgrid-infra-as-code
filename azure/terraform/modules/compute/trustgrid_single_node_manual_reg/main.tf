@@ -67,7 +67,7 @@ resource "azurerm_linux_virtual_machine" "node" {
   location            = var.location
   size                = var.vm_size
   admin_username      = "ubuntu"
-  source_image_id     = "/CommunityGalleries/${var.tg_image_gallery}/Images/trustgrid-node-2204-${var.tg_tenant}/Versions/${var.tg_version}"
+  source_image_id     = "/communityGalleries/${var.tg_image_gallery}/Images/trustgrid-node-2204-${var.tg_tenant}/versions/${var.tg_version}"
   zone = var.availability_zone
 
   network_interface_ids = [
