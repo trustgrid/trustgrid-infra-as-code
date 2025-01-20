@@ -28,7 +28,7 @@ data "cloudinit_config" "config" {
         {
           path        = "/usr/local/trustgrid/bootstrap.sh"
           content     = templatefile("${path.module}/templates/bootstrap.sh.tpl", {
-            # Add any variables you want to pass to the template
+            enroll_endpoint = var.enroll_endpoint
           })
           permissions = "0755"
         }
