@@ -110,6 +110,8 @@ resource "azurerm_linux_virtual_machine" "node" {
     azurerm_network_interface.private.id,
   ]
 
+  custom_data = data.cloudinit_config.config.rendered
+
   admin_ssh_key {
     username   = var.admin_ssh_username
     public_key = var.admin_ssh_key_pub
