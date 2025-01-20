@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-
+apt-get -y install python-setuptools
 unzip /opt/trustgrid/pre-reg.zip -d /tmp/pre-reg
 cd /tmp/pre-reg
 /usr/local/trustgrid/ansible/tg-ansible --ansible-playbook ./pre-registration.yaml -e "tenant=${tenant} platform=${platform}" > /bootstrap.out
