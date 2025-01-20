@@ -2,15 +2,11 @@ terraform {
   required_providers {
     cloudinit = {
       source = "hashicorp/cloudinit"
-      version = "~> 2.3.2"
+      version = "~> 2.3.6"
     }
     azurerm = {
       source = "hashicorp/azurerm"
       version = "~> 4.15.0"
-    }
-    tg = {
-      source = "trustgrid/tg"
-      version = "~> 1.10.3"
     }
   }
 }
@@ -28,14 +24,22 @@ data "cloudinit_config" "config" {
           path        = "/usr/local/trustgrid/license.txt"
           content     = var.tg_license
           permissions = "0644"
+        },
+        {
+          path        = "/usr/local/trustgrid/bootstrap.sh"
+          content     = templatefile("${path.module}/templates/bootstrap.sh.tpl", {
+            # Add any variables you want to pass to the template
+          })
+          permissions = "0755"
         }
       ]
       runcmd = [
-        "cd /usr/local/trustgrid && bin/register.sh"
+        "/usr/local/trustgrid/bootstrap.sh"
       ]
     })
   }
 }
+
 
 
 ## Create Network Resources
