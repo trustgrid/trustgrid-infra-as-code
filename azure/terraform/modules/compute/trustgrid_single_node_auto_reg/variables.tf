@@ -98,12 +98,6 @@ variable "tg_license" {
   description = "Trustgrid Appliance license. Can be generated from the portal/api or the tg_license resource in the Trustgrid Terraform provider" 
 }
 
-variable "tg_fqdn" {
-  type = string
-  description = "FQDN of the Trustgrid Node associated with the license. Can be derived from the tg_license resource with the .fqdn attribute"
-  
-}
-
 variable enroll_endpoint {
   type = string
   description = "Determines which Trustgrid tenant where the node will be registered (DO NOT CHANGE)"
