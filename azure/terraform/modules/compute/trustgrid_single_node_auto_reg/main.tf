@@ -28,7 +28,8 @@ data "cloudinit_config" "config" {
         {
           path        = "/usr/local/trustgrid/bootstrap.sh"
           content     = templatefile("${path.module}/templates/bootstrap.sh.tpl", {
-            enroll_endpoint = var.enroll_endpoint
+            tenant = var.tg_tenant,
+            platform = "azure"
           })
           permissions = "0755"
         }

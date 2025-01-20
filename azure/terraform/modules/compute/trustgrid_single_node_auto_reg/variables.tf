@@ -82,7 +82,7 @@ variable "tg_image_gallery" {
 
 variable "tg_tenant" {
   type        = string
-  description = "Trustgrid Tenant ID (DO NOT CHANGE)"
+  description = "Trustgrid Tenant ID (DO NOT CHANGE, valid values are 'prod', 'stage', 'test' or 'dev')"
   default = "prod"
 }
 
@@ -92,14 +92,8 @@ variable "tg_version" {
   default = "latest"  
 }
 
-## Trustgrid Variables
 variable "tg_license" {
   type = string
   description = "Trustgrid Appliance license. Can be generated from the portal/api or the tg_license resource in the Trustgrid Terraform provider" 
 }
 
-variable enroll_endpoint {
-  type = string
-  description = "Determines which Trustgrid tenant where the node will be registered (DO NOT CHANGE)"
-  default = "https://keymaster.trustgrid.io/v2/enroll"
-}
