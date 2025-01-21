@@ -13,7 +13,7 @@ locals {
 }
 
 resource "azurerm_network_security_rule" "trustgrid_control_plane_1" {
-  name                        = "${var.name_prefix}-tcp-8443-1"
+  name                        = "${var.name_prefix}-trustgrid-control-plane-1"
   priority                    = var.security_group_rule_priority_start
   direction                  = "Outbound"
   access                     = "Allow"
@@ -24,10 +24,11 @@ resource "azurerm_network_security_rule" "trustgrid_control_plane_1" {
   destination_address_prefix = "35.171.100.16/28"
   resource_group_name        = local.resource_group_name
   network_security_group_name = local.security_group_name
+  description = "Allow Trustgrid Node to reach the Trustgrid Control Plane primary region"
 }
 
 resource "azurerm_network_security_rule" "trustgrid_control_plane_2" {
-  name                        = "${var.name_prefix}-tcp-8443-2"
+  name                        = "${var.name_prefix}-trustgrid-control-plane-2"
   priority                    = var.security_group_rule_priority_start + 1
   direction                  = "Outbound"
   access                     = "Allow"
@@ -38,4 +39,5 @@ resource "azurerm_network_security_rule" "trustgrid_control_plane_2" {
   destination_address_prefix = "34.223.12.192/28"
   resource_group_name        = local.resource_group_name
   network_security_group_name = local.security_group_name
+  description = "Allow Trustgrid Node to reach the Trustgrid Control Plane secondary region"
 }
