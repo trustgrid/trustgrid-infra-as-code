@@ -3,11 +3,6 @@ output "application_security_group_id" {
   description = "The ID of the Trustgrid Gateway Application Security Group"
 }
 
-output "application_security_group_id" {
-  value       = azurerm_application_security_group.trustgrid_gateway.id
-  description = "The ID of the Trustgrid Gateway Application Security Group"
-}
-
 output "data_plane_tcp_rule_id" {
   value       = try(azurerm_network_security_rule.data_plane_tcp[0].id, "")
   description = "The ID of the TCP data plane security rule, if created"
