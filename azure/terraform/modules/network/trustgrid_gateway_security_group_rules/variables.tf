@@ -10,7 +10,7 @@ variable "security_group_id" {
 
 variable "security_group_rule_priority_start" {
     type        = number
-    description = "Start of the priority range for the Trustgrid Gateway rules"
+    description = "Start of the priority range for the Trustgrid Gateway rules. Up to 4 rules will be created, starting at this priority. Ensure that this value is set such that the rules are not overridden by lower priority restrictions, and that they do not conflict with existing rules."
     default     = 200
 }
 
