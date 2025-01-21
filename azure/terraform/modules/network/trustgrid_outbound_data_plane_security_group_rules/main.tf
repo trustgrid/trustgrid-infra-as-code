@@ -14,7 +14,7 @@ locals {
 
 resource "azurerm_network_security_rule" "tcp_rules" {
   for_each                    = { for idx, endpoint in var.data_plane_endpoints : idx => endpoint }
-  name                        = "${var.name_prefix}-tcp-${each.value.suffix}"
+  name                        = "${var.name_prefix}-trustgrid-data-plane-tcp-${each.value.suffix}"
   description                 = each.value.description
   resource_group_name         = local.resource_group_name
   network_security_group_name = local.security_group_name
@@ -30,7 +30,7 @@ resource "azurerm_network_security_rule" "tcp_rules" {
 
 resource "azurerm_network_security_rule" "udp_rules" {
   for_each                    = var.enable_udp ? { for idx, endpoint in var.data_plane_endpoints : idx => endpoint } : {}
-  name                        = "${var.name_prefix}-udp-${each.value.suffix}"
+  name                        = "${var.name_prefix}-trustgrid-data-plane-udp-${each.value.suffix}"
   description                 = each.value.description
   resource_group_name         = local.resource_group_name
   network_security_group_name = local.security_group_name
