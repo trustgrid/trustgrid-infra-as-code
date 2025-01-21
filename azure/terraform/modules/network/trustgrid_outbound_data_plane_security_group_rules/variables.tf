@@ -1,8 +1,8 @@
 variable "name_prefix" {
     type        = string
     description = "Prefix for the resources created by this module"
-  
 }
+
 variable "security_group_id" {
     type        = string
     description = "Security group ID for the Trustgrid Control Plane rules to be added to"  
@@ -16,10 +16,12 @@ variable "security_group_rule_priority_start" {
 
 variable "data_plane_endpoints" {
   type = list(object({
-    ip   = string
-    port = number
+    ip          = string
+    port        = number
+    suffix      = string
+    description = string
   }))
-  description = "List of destination IP and port combinations to allow outbound access. The IP field accepts both single IPs and CIDR ranges. Example: [{ip = \"10.0.0.0/24\", port = 8443}, {ip = \"192.168.1.1\", port = 8443}]. The port field accepts a single port number. Remove slashes before double quotes in example."
+  description = "List of destination IP and port combinations to allow outbound access. The IP field accepts both single IPs and CIDR ranges. Example: [{ip = \"10.0.0.0/24\", port = 8443, suffix = \"internal\", description = \"Internal network access\"}, {ip = \"192.168.1.1\", port = 8443, suffix = \"external\", description = \"External endpoint access\"}]. The port field accepts a single port number."
 }
 
 variable "enable_udp" {
