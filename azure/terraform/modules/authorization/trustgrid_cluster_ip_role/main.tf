@@ -9,7 +9,7 @@ terraform {
 
 resource "azurerm_role_definition" "tg_cluster_ip_role" {
   name  = "${var.name_prefix}-trustgrid-cluster-ip-role"
-  scope = ""
+  scope = var.scope
   description = "Provides permissions required for Trustgrid clusters to manage a floating cluster IP address"
   permissions {
     actions = [

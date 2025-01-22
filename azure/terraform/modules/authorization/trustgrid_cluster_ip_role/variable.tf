@@ -4,7 +4,13 @@ variable "name_prefix" {
   
 }
 
+variable "scope" {
+    type        = string
+    description = "Specifies the Azure Resource Manager (ARM) scope where the custom role definition itself is created or defined."
+  
+}
+
 variable "assignable_scopes" {
     type        = list(string)
-    description = "Scope to limit where the role can be assigned. This can be a subscription, resource group, or resource ID."
+    description = "Defines the resources, resource groups, or subscriptions where the custom role can be used for assignments."
 }
