@@ -7,8 +7,8 @@ terraform {
   }
 }
 
-resource "azurerm_role_definition" "tg_cluster_ip_role" {
-  name  = "${var.name_prefix}-trustgrid-cluster-ip-role"
+resource "azurerm_role_definition" "tg_cluster_route_role" {
+  name  = "${var.name_prefix}-trustgrid-cluster-route-role"
   scope = var.scope
   description = "Provides permissions required for Trustgrid clusters to manage updating routes in Azure"
   permissions {
