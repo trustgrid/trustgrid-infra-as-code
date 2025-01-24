@@ -98,7 +98,7 @@ module "az_node2" {
   
 }
 
-## Explicitly Allow Traffic to the Trustgrid Control Plane 
+## Allow Traffic to the Trustgrid Control Plane 
 ## This would only be required if the security group does not allow all outbound traffic to the Internet
 
 module "trustgrid_outbound_cp_rules" {
@@ -108,8 +108,23 @@ module "trustgrid_outbound_cp_rules" {
   security_group_rule_priority_start = 300
 } 
 
+## Allow Data Plane Traffic to the Trustgrid Gateways
+## This would only be required if the security group does not allow all outbound traffic to the Internet
 
-## Below shows how to create Azure IAM Roles for managing Cluster High Availability with both the floating Cluster IP method and by managing route tables.  Typically you'd only use one of these methods.
+module "trustgrid_outbound_dp_rules" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/network/trustgrid_outbound_data_plane_security_group_rules?ref=6-add-tf-autoregistration-scripts-to-azure-examples"
+  name_prefix = var.environment_prefix
+  security_group_id = azurerm_network_security_group.public.id
+  security_group_rule_priority_start = 310
+  enable_udp=var.data_plane_enable_udp
+  data_plane_endpoints = var.data_plane_endpoints
+
+} 
+
+
+
+## Below shows how to create Azure IAM Roles for managing Cluster High Availability with both the floating Cluster IP method and by managing route tables.  
+## Typically you would only use one of these methods.
 
 ## Create Roles Required for Cluster IP and Assign to the Trustgrid Edge nodes
 data "azurerm_subscription" "current" {
