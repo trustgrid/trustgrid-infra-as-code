@@ -157,16 +157,6 @@ module "trustgrid_outbound_cp_rules" {
   security_group_rule_priority_start = 300
 } 
 
-module "trustgrid_outbound_dp_rules" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/network/trustgrid_outbound_data_plane_security_group_rules?ref=v0.2.0"
-  name_prefix = var.environment_prefix
-  security_group_id = azurerm_network_security_group.public.id
-  security_group_rule_priority_start = 310
-  enable_udp=var.data_plane_enable_udp
-  data_plane_endpoints = var.data_plane_endpoints
-
-} 
-
 ## Below shows how to create Azure IAM Roles for managing Cluster High Availability with both the floating Cluster IP method and by managing route tables.  Typically you'd only use one of these methods.
 
 ## Create Roles Required for Cluster IP and Assign to the Trustgrid Gateways
