@@ -69,13 +69,3 @@ variable "az_gw2_zone" {
     type        = number
 }
 
-## Azure Gateway Host Variables
-variable "az_gw_host_name" {
-    description = "Name for the gateway host VM, environment prefix will be prepended"
-    type        = string
-}
-
-variable "az_gw_host_zone" {
-    description = "Availability zone for the gateway host VM"
-    type        = number
-}
