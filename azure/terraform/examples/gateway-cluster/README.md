@@ -1,5 +1,5 @@
 ### Terraform Azure Gateway Cluster Example
-This example demonstrates how to deploy a gateway cluster using Terraform. 
+This example demonstrates how to deploy a gateway cluster using Terraform.  It also creates several resources that may already exist in your environment, such as the resources group, a virtual network, subnet, and a security group. If these resources already exist, you should modify your Terraform code to reference them and remove the resources that are created by this example.
 
 The example use both the manual and automated registration modules to show how they work. In a real world scenario, you would use only one method to register.  
 

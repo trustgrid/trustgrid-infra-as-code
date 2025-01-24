@@ -75,7 +75,7 @@ resource "azurerm_network_security_group" "private" {
 ## Configure Security Group Rules for Trustgrid Gateways. These rules are required for the Trustgrid Gateways to function. The module can also optionally create rules for the Gateways to act as Wireguard or ZTNA Application gateways.  
 
 module "trustgrid_gateway_security_group_rules" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/network/trustgrid_gateway_security_group_rules?ref=v0.1.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/network/trustgrid_gateway_security_group_rules?ref=v0.2.0"
 
   name_prefix                          = var.environment_prefix
   security_group_id                    = resource.azurerm_network_security_group.public.id
@@ -90,7 +90,7 @@ module "trustgrid_gateway_security_group_rules" {
 ## Create Trustgrid Gateways
 ### The below example shows creating one gateway with the manual registration module and the other with the automatic registration module. A real deployment should use the same module for both gateways depending on the desired registration method.
 module "az_gw1" {
-    source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/compute/trustgrid_single_node_manual_reg?ref=v0.1.0"
+    source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/compute/trustgrid_single_node_manual_reg?ref=v0.2.0"
     resource_group_name = azurerm_resource_group.trustgrid.name
     location = azurerm_resource_group.trustgrid.location
 
@@ -113,7 +113,7 @@ resource "tg_license" "az_gw2" {
 }
 
 module "az_gw2" {
-    source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/compute/trustgrid_single_node_auto_reg?ref=v0.1.0"
+    source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/compute/trustgrid_single_node_auto_reg?ref=v0.2.0"
     resource_group_name = azurerm_resource_group.trustgrid.name
     location = azurerm_resource_group.trustgrid.location
 
@@ -151,14 +151,14 @@ resource "azurerm_network_interface_application_security_group_association" "az_
 ## This would only be required if the security group does not allow all outbound traffic to the Internet
 
 module "trustgrid_outbound_cp_rules" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/network/trustgrid_outbound_control_plane_security_group_rules?ref=v0.1.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/network/trustgrid_outbound_control_plane_security_group_rules?ref=v0.2.0"
   name_prefix = var.environment_prefix
   security_group_id = azurerm_network_security_group.public.id
   security_group_rule_priority_start = 300
 } 
 
 module "trustgrid_outbound_dp_rules" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/network/trustgrid_outbound_data_plane_security_group_rules?ref=v0.1.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/network/trustgrid_outbound_data_plane_security_group_rules?ref=v0.2.0"
   name_prefix = var.environment_prefix
   security_group_id = azurerm_network_security_group.public.id
   security_group_rule_priority_start = 310
@@ -176,7 +176,7 @@ data "azurerm_subscription" "current" {
 
 
 module "trustgrid_cluster_ip_role" {
-    source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/authorization/trustgrid_cluster_ip_role?ref=v0.1.0"
+    source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/authorization/trustgrid_cluster_ip_role?ref=v0.2.0"
     name_prefix = var.environment_prefix
     scope = data.azurerm_subscription.current.id
     assignable_scopes = [ data.azurerm_subscription.current.id ]
@@ -199,7 +199,7 @@ resource "azurerm_role_assignment" "az_gw2_cluster_ip" {
 
 
 module "trustgrid_cluster_route_role" {
-    source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/authorization/trustgrid_cluster_route_role?ref=v0.1.0"
+    source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/authorization/trustgrid_cluster_route_role?ref=v0.2.0"
     name_prefix = var.environment_prefix
     scope = data.azurerm_subscription.current.id
     assignable_scopes = [ data.azurerm_subscription.current.id ]  
