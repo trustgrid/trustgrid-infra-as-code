@@ -64,6 +64,7 @@ resource "azurerm_network_security_group" "private" {
 
 
 ## Create Trustgrid Edge Nodes with the manual registration method
+## See gateway example if you have access to a Trustgrid license and want to use the automated registration module
 
 module "az_node1" {
     source = "github.com/trustgrid/trustgrid-infra-as-code//azure/terraform/modules/compute/trustgrid_single_node_manual_reg?ref=v0.2.0"
