@@ -37,7 +37,7 @@ param virtualNetworkName string
 param outsideSubnetName string
 
 @description('The ID of the network security group to associate with the outside network interface')
-param outsideSecrityGroupName string
+param outsideSecurityGroupName string
 
 @description('Name of inside subnet the Trustgrid Appliance VM inside facing interface will connect to')
 param insideSubnetName string
@@ -51,7 +51,7 @@ resource outsideSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-04-01' ex
 }
 
 resource outsideSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-04-01' existing = {
-  name: outsideSecrityGroupName
+  name: outsideSecurityGroupName
 }
 
 resource insideSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-04-01' existing = {
