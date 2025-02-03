@@ -63,6 +63,13 @@ resource "azurerm_network_interface" "public" {
     public_ip_address_id            = azurerm_public_ip.public_ip.id
     primary                         = true
   }
+  
+  lifecycle {
+    ignore_changes = [
+      ip_configuration
+    ]
+  }
+
 }
 
 resource "azurerm_network_interface_security_group_association" "public" {
@@ -81,6 +88,12 @@ resource "azurerm_network_interface" "private" {
     subnet_id                     = var.private_subnet_id
     private_ip_address_allocation = "Dynamic"
     primary                       = true
+  }
+
+  lifecycle {
+    ignore_changes = [
+      ip_configuration
+    ]
   }
 }
 
