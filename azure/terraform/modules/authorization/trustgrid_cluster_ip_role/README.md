@@ -1,5 +1,9 @@
 ##  Terraform Module: Authorization - TrustGrid Cluster IP Role
-This module creates a role definition in Azure that allows cluster members to manage a floating cluster IP address.  Each Cluster VM's managed identity must be assigned this role to grant permissions in the resource group(s) containing the network interfaces and vNet.
+This module creates a role definition in Azure that allows cluster members to manage a floating cluster IP address.  
+
+After creating the role, you will need to use the `azurerm_role_assignment` resource to assign the role to each cluster member for every resources groups that contains either:
+- The Trustgrid nodes Virtual Machines
+- The Virtual network the Trustgrid nodes are connected to
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

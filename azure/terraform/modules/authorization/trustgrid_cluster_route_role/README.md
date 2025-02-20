@@ -1,6 +1,10 @@
 ## Terraform Module: Authorization - TrustGrid Cluster Route Role
-This role grants permissions for clustered VMs to manage Azure route table entries during failover. Each Cluster VM's managed identity must be assigned this role to grant permissions in the resource group(s) containing the VM, its network interfaces and route tables the cluster needs to modify.
+This role creates an Azure role definition with the permissions required for clustered Trustgrid nodes to manage routes. 
 
+After creating the role, you will need to use the `azurerm_role_assignment` resource to assign the role to each cluster member for every resources groups that contains either:
+- The Trustgrid nodes Virtual Machines
+- The Virtual network the Trustgrid nodes are connected to
+- Any route table the Trustgrid nodes needs to modify
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
