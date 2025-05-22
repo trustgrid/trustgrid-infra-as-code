@@ -5,7 +5,7 @@ data "aws_caller_identity" "current" {}
 locals {
   route_table_arns = [
     for id in var.route_table_ids :
-    "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:route-table/${id}"
+    "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:route-table/${id}"
   ]
 }
 
