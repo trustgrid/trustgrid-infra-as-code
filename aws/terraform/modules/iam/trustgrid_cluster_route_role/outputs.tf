@@ -1,7 +1,7 @@
-output "trustgrid-instance-profile-name" {
+output "profile_name" {
     value = aws_iam_instance_profile.trustgrid-instance-profile.name
 }
 
-output "trustgrid-node-iam-role"  {
+output "role"  {
     value = aws_iam_role.trustgrid-node
 }
