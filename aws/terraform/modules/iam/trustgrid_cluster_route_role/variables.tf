@@ -4,7 +4,7 @@ variable "name_prefix" {
     default = "trustgrid-cluster-route"  
 }
 
-variable "route_table_arns" {
+variable "route_table_ids" {
     type = list(string)
-    description = "List of route table ARNs the role will be allowed to manage"  
+    description = "List of route table IDs the role will be allowed to manage"  
 }

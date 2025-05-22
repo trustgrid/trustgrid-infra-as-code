@@ -1,3 +1,16 @@
+data "aws_region" "current" {}
+
+data "aws_caller_identity" "current" {}
+
+locals {
+  route_table_arns = [
+    for id in var.route_table_ids :
+    "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:route-table/${id}"
+  ]
+}
+
+
+
 data "aws_iam_policy_document" "private-route-table-modifications" {
   statement {
       actions = ["ec2:DescribeRouteTables"]
@@ -9,7 +22,7 @@ data "aws_iam_policy_document" "private-route-table-modifications" {
           "ec2:CreateRoute",
           "ec2:DeleteRoute"
       ]
-      resources = var.route_table_arns
+      resources = local.route_table_arns
   }
 }
 
