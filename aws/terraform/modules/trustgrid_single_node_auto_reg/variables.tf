@@ -86,16 +86,3 @@ variable enroll_endpoint {
   description = "Determines which Trustgrid Tenant the node is registered to"
   default = "https://keymaster.trustgrid.io/v2/enroll"
 }
-
-variable "tg_fqdn" {
-  type = string
-  description = "FQDN of the Trustgrid Node associated with the license"
-  
-}
-
-variable "tg_node_timeout" {
-  type = number
-  default = 600
-  description = "Number of seconds to wait to confirm the node is online via the Trustgrid API before failing"
-  
-}
