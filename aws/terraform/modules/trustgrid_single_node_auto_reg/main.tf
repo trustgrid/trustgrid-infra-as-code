@@ -148,6 +148,13 @@ resource "aws_instance" "node" {
     device_index = 1
   }
 
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"  # This enforces IMDSv2
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "disabled"
+  }
+
   tags = {
     Name = var.name
   }
