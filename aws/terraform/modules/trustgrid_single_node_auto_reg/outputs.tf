@@ -21,7 +21,3 @@ output "node-data-private-ip" {
 output "node-security-group-id" {
     value = aws_security_group.node_mgmt_sg.id
 }
-
-output "tg_node" {
-    value =  data.tg_node.node
-}

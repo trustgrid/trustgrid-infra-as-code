@@ -16,7 +16,7 @@ variable "management_subnet_id" {
 
 variable "management_security_group_ids" {
   type        = list
-  description = "Security group IDs for the management interface"
+  description = "Security group IDs for the management interface. Recommended to include any desired default security groups."
 }
 
 variable "data_subnet_id" {
@@ -26,7 +26,7 @@ variable "data_subnet_id" {
 
 variable "data_security_group_ids" {
   type        = list
-  description = "Security group IDs for the data interface"
+  description = "Security group IDs for the data interface. Recommended to include any desired default security groups."
 }
 
 
@@ -85,17 +85,4 @@ variable enroll_endpoint {
   type = string
   description = "Determines which Trustgrid Tenant the node is registered to"
   default = "https://keymaster.trustgrid.io/v2/enroll"
-}
-
-variable "tg_fqdn" {
-  type = string
-  description = "FQDN of the Trustgrid Node associated with the license"
-  
-}
-
-variable "tg_node_timeout" {
-  type = number
-  default = 600
-  description = "Number of seconds to wait to confirm the node is online via the Trustgrid API before failing"
-  
 }
