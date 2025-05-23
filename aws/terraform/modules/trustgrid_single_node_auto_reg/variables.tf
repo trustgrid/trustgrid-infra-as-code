@@ -16,7 +16,7 @@ variable "management_subnet_id" {
 
 variable "management_security_group_ids" {
   type        = list
-  description = "Security group IDs for the management interface"
+  description = "Security group IDs for the management interface. Recommended to include any desired default security groups."
 }
 
 variable "data_subnet_id" {
@@ -26,7 +26,7 @@ variable "data_subnet_id" {
 
 variable "data_security_group_ids" {
   type        = list
-  description = "Security group IDs for the data interface"
+  description = "Security group IDs for the data interface. Recommended to include any desired default security groups."
 }
 
 
