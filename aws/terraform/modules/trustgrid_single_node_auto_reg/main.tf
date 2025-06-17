@@ -4,10 +4,6 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 2.7.0"
     }
-    tg = {
-      source = "trustgrid/tg"
-      version = ">= 1.4.0"
-    }
   }
 }
 
@@ -44,7 +40,7 @@ data "cloudinit_config" "cloud_init" {
     filename     = "bootstrap.sh"
     content      = templatefile("${path.module}/scripts/bootstrap.sh.tpl", 
     { 
-      region = data.aws_region.current.name,
+      region = data.aws_region.current.region,
       enroll_endpoint = var.enroll_endpoint
     })
   }
@@ -135,12 +131,12 @@ resource "aws_eip" "mgmt_ip" {
 }
 
 resource "aws_instance" "node" {
-  ami           = data.aws_ami.trustgrid-node-ami.id
-  instance_type = var.instance_type
-  key_name = var.key_pair_name
-
-  user_data              = data.cloudinit_config.cloud_init.rendered
-  iam_instance_profile   = data.aws_iam_instance_profile.instance_profile.name
+  ami                     = data.aws_ami.trustgrid-node-ami.id
+  instance_type           = var.instance_type
+  key_name                = var.key_pair_name
+  
+  user_data_base64        = data.cloudinit_config.cloud_init.rendered
+  iam_instance_profile    = data.aws_iam_instance_profile.instance_profile.name
 
   network_interface {
     network_interface_id = aws_network_interface.management_eni.id
@@ -150,6 +146,13 @@ resource "aws_instance" "node" {
   network_interface {
     network_interface_id = aws_network_interface.data_eni.id
     device_index = 1
+  }
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"  # This enforces IMDSv2
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "disabled"
   }
 
   tags = {
@@ -166,12 +169,3 @@ resource "aws_instance" "node" {
   }
 }
 
-data "tg_node" "node" {
-  fqdn = var.tg_fqdn
-  timeout = var.tg_node_timeout
-
-  depends_on = [
-    aws_instance.node
-  ]
-  
-}
