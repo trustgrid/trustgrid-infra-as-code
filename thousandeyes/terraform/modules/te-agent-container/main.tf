@@ -2,7 +2,7 @@ terraform {
   required_providers {
     tg = {
       source  = "trustgrid/tg"
-      version = ">= 1.33.0"
+      version = ">= 1.37.0"
     }
   }
 }

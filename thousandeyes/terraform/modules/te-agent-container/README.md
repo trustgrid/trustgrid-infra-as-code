@@ -7,7 +7,7 @@ terraform {
     required_providers {
         tg = {
             source    = "trustgrid/tg"
-            version   = "1.36.0"
+            version   = "1.37.0"
         }
     }
 }
@@ -62,14 +62,14 @@ module "te_containers" {
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_tg"></a> [tg](#requirement\_tg) | >= 1.33.0 |
+| <a name="requirement_tg"></a> [tg](#requirement\_tg) | >= 1.37.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
 | <a name="provider_null"></a> [null](#provider\_null) | n/a |
-| <a name="provider_tg"></a> [tg](#provider\_tg) | >= 1.33.0 |
+| <a name="provider_tg"></a> [tg](#provider\_tg) | >= 1.37.0 |
 
 ## Modules
 
