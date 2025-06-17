@@ -43,7 +43,7 @@ variable "te_account_token" {
 }
 
 module "te_containers" {
-    source = "../../../terraform/modules/thousand_eyes_container"
+    source = "github.com/trustgrid/trustgrid-infra-as-code//thousandeyes/terraform/modules/te-agent-container?ref=v0.6.0"
     container_name = "thousandeyes-agent"
     cluster_fqdn = var.cluster_fqdn
     image_repository = "myorg.trustgrid.io/te-enterprise-agent"
