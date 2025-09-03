@@ -130,6 +130,7 @@ resource "aws_instance" "node" {
   root_block_device {
     encrypted = var.root_block_device_encrypt
     volume_size = var.root_block_device_size
+    volume_type = "gp3"
   }
 
   lifecycle {
