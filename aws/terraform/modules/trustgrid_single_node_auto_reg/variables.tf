@@ -1,6 +1,7 @@
 variable "instance_profile_name" {
   type        = string
   description = "IAM Instance Profile the Trustgrid EC2 node will use"
+  default     = null
 }
 
 variable "license" {

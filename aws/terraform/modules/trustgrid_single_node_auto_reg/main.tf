@@ -134,9 +134,10 @@ resource "aws_instance" "node" {
   ami                     = data.aws_ami.trustgrid-node-ami.id
   instance_type           = var.instance_type
   key_name                = var.key_pair_name
-  
+
   user_data_base64        = data.cloudinit_config.cloud_init.rendered
-  iam_instance_profile    = data.aws_iam_instance_profile.instance_profile.name
+
+  iam_instance_profile    = var.instance_profile_name != null ? data.aws_iam_instance_profile.instance_profile.name : null
 
   network_interface {
     network_interface_id = aws_network_interface.management_eni.id
