@@ -17,7 +17,8 @@ data "aws_ami" "trustgrid-node-ami" {
 }
 
 data "aws_iam_instance_profile" "instance_profile" {
-  name = var.instance_profile_name
+  count = var.instance_profile_name != null ? 1 : 0
+  name  = var.instance_profile_name
 }
 
 data "aws_region" "current" {}
@@ -137,7 +138,7 @@ resource "aws_instance" "node" {
 
   user_data_base64        = data.cloudinit_config.cloud_init.rendered
 
-  iam_instance_profile    = var.instance_profile_name != null ? data.aws_iam_instance_profile.instance_profile.name : null
+  iam_instance_profile    = var.instance_profile_name != null ? data.aws_iam_instance_profile.instance_profile[0].name : null
 
   network_interface {
     network_interface_id = aws_network_interface.management_eni.id
