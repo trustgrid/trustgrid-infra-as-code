@@ -87,3 +87,9 @@ variable enroll_endpoint {
   description = "Determines which Trustgrid Tenant the node is registered to"
   default = "https://keymaster.trustgrid.io/v2/enroll"
 }
+
+variable "trustgrid_ami_id" {
+  type        = string
+  description = "Optional: Explicit Trustgrid AMI ID to use for the EC2 node. If not set, the latest matching AMI will be used."
+  default     = null
+}
