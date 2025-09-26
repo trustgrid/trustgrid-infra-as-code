@@ -1,7 +1,9 @@
 variable "instance_profile_name" {
   type        = string
-  description = "IAM Instance Profile the Trustgrid EC2 node will use"
+  description = "IAM Instance Profile the Trustgrid EC2 node will use for managing AWS resources such as route table entries for clustered nodes."
+  default     = null
 }
+
 
 variable "management_subnet_id" {
   type        = string
@@ -35,8 +37,10 @@ variable "instance_type" {
   default     = "t3.small"
 
   validation {
-    condition     = contains(["t3.small", "t3.medium", "t3.large", "t3.xlarge", "t3.2xlarge","t3a.small", "t3a.medium", "t3a.large", "t3a.xlarge", "t3a.2xlarge", "c5n.large", "c5n.xlarge", "c5n.2xlarge", "c5n.4xlarge", "c5n.9xlarge"], var.instance_type)
-    error_message = "Instance type must be t3 or t3a (small or bigger) or c5n (large or bigger) family instance."
+    condition = (
+      can(regex("^(t3|t3a|c5|c5n|c5a|c6i|c6in|c6a)\\..+$", var.instance_type))
+    )
+    error_message = "Instance type must be a valid t3, t3a, c5, c5n, c5a, c6i, c6in, or c6a family instance type (e.g., t3.small, c6i.4xlarge)."
   }
 }
 
@@ -63,7 +67,25 @@ variable is_tggateway {
   default = false
 }
 
-variable is_wggateway {
+variable "tggateway_port" {
+  type        = number
+  description = "Port for Trustgrid Gateway (TCP/UDP tunnel)"
+  default     = 8443
+}
+
+variable "appgateway_port" {
+  type        = number
+  description = "Port for Application Gateway (TCP)"
+  default     = 443
+}
+
+variable "wggateway_port" {
+  type        = number
+  description = "Port for Wireguard Gateway (UDP)"
+  default     = 51820
+}
+
+variable "is_wggateway" {
   type = bool
   description = "Determines if security group should allow port 51820 inbound for Wireguard"
   default = false
