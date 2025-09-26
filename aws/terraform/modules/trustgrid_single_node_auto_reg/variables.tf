@@ -90,7 +90,7 @@ variable "wggateway_port" {
   default     = 51820
 }
 
-variable is_wggateway {
+variable "is_wggateway" {
   type = bool
   description = "Determines if security group should allow port 51820 inbound for Wireguard"
   default = false
