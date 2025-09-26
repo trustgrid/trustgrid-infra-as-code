@@ -72,6 +72,24 @@ variable is_tggateway {
   default = false
 }
 
+variable "tggateway_port" {
+  type        = number
+  description = "Port for Trustgrid Gateway (TCP/UDP tunnel)"
+  default     = 8443
+}
+
+variable "appgateway_port" {
+  type        = number
+  description = "Port for Application Gateway (TCP)"
+  default     = 443
+}
+
+variable "wggateway_port" {
+  type        = number
+  description = "Port for Wireguard Gateway (UDP)"
+  default     = 51820
+}
+
 variable is_wggateway {
   type = bool
   description = "Determines if security group should allow port 51820 inbound for Wireguard"

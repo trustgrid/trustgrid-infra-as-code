@@ -57,44 +57,44 @@ resource "aws_security_group" "node_mgmt_sg" {
   vpc_id      = data.aws_subnet.mgmt_subnet.vpc_id
 }
 
-resource "aws_security_group_rule" "tcp_8443" {
+resource "aws_security_group_rule" "tcp_tggw" {
   count = var.is_tggateway ? 1 : 0
   type              = "ingress"
-  from_port         = 8443
-  to_port           = 8443
+  from_port         = var.tggateway_port
+  to_port           = var.tggateway_port
   protocol          = "tcp"
   cidr_blocks       = [ "0.0.0.0/0" ]
   security_group_id = aws_security_group.node_mgmt_sg.id
   description       = "Trustgrid TCP Tunnel"
 }
 
-resource "aws_security_group_rule" "udp_8443" {
+resource "aws_security_group_rule" "udp_tggw" {
   count = var.is_tggateway ? 1 : 0
   type              = "ingress"
-  from_port         = 8443
-  to_port           = 8443
+  from_port         = var.tggateway_port
+  to_port           = var.tggateway_port
   protocol          = "udp"
   cidr_blocks        = [ "0.0.0.0/0" ]
   security_group_id = aws_security_group.node_mgmt_sg.id
   description       = "Trustgrid UDP Tunnel"
 }
 
-resource "aws_security_group_rule" "udp_51820" {
+resource "aws_security_group_rule" "udp_wggw" {
   count = var.is_wggateway ? 1 : 0
   type              = "ingress"
-  from_port         = 51820
-  to_port           = 51820
+  from_port         = var.wggateway_port
+  to_port           = var.wggateway_port
   protocol          = "udp"
   cidr_blocks        = [ "0.0.0.0/0" ]
   security_group_id = aws_security_group.node_mgmt_sg.id
   description       = "Wireguard UDP Tunnel"
 }
 
-resource "aws_security_group_rule" "tcp_443" {
+resource "aws_security_group_rule" "tcp_appgw" {
   count = var.is_appgateway ? 1 : 0
   type              = "ingress"
-  from_port         = 443
-  to_port           = 443
+  from_port         = var.appgateway_port
+  to_port           = var.appgateway_port
   protocol          = "tcp"
   cidr_blocks        = [ "0.0.0.0/0" ]
   security_group_id = aws_security_group.node_mgmt_sg.id
