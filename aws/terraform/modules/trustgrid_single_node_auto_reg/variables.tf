@@ -41,10 +41,12 @@ variable "instance_type" {
   description = "Node instance type"
   default     = "t3.small"
 
-  #validation {
-  #  condition     = contains(["t3.small", "t3.medium", "t3.large", "t3.xlarge", "t3.2xlarge","t3a.small", "t3a.medium", "t3a.large", "t3a.xlarge", "t3a.2xlarge", "c5n.large", "c5n.xlarge", "c5n.2xlarge", "c5n.4xlarge", "c5n.9xlarge"], var.instance_type)
-  #  error_message = "Instance type must be t3 or t3a (small or bigger) or c5n (large or bigger) family instance."
-  #}
+  validation {
+    condition = (
+      can(regex("^(t3|t3a|c5|c5n|c5a|c6i|c6in|c6a)\\..+$", var.instance_type))
+    )
+    error_message = "Instance type must be a valid t3, t3a, c5, c5n, c5a, c6i, c6in, or c6a family instance type (e.g., t3.small, c6i.4xlarge)."
+  }
 }
 
 variable key_pair_name {
