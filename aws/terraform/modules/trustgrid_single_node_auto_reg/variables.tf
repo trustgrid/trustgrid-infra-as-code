@@ -1,6 +1,6 @@
 variable "instance_profile_name" {
   type        = string
-  description = "IAM Instance Profile the Trustgrid EC2 node will use"
+  description = "IAM Instance Profile the Trustgrid EC2 node will use for managing AWS resources such as route table entries for clustered nodes."
   default     = null
 }
 
