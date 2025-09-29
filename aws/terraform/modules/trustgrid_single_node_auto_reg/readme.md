@@ -36,10 +36,10 @@ No modules.
 | [aws_network_interface.data_eni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface) | resource |
 | [aws_network_interface.management_eni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface) | resource |
 | [aws_security_group.node_mgmt_sg](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
-| [aws_security_group_rule.tcp_443](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [aws_security_group_rule.tcp_8443](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [aws_security_group_rule.udp_51820](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
-| [aws_security_group_rule.udp_8443](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
+| [aws_security_group_rule.tcp_appgw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
+| [aws_security_group_rule.tcp_tggw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
+| [aws_security_group_rule.udp_tggw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
+| [aws_security_group_rule.udp_wggw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 | [aws_ami.trustgrid-node-ami](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami) | data source |
 | [aws_iam_instance_profile.instance_profile](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_instance_profile) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
@@ -50,10 +50,11 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_appgateway_port"></a> [appgateway\_port](#input\_appgateway\_port) | Port for Application Gateway (TCP) | `number` | `443` | no |
 | <a name="input_data_security_group_ids"></a> [data\_security\_group\_ids](#input\_data\_security\_group\_ids) | Security group IDs for the data interface. Recommended to include any desired default security groups. | `list` | n/a | yes |
 | <a name="input_data_subnet_id"></a> [data\_subnet\_id](#input\_data\_subnet\_id) | Subnet ID for data traffic | `string` | n/a | yes |
 | <a name="input_enroll_endpoint"></a> [enroll\_endpoint](#input\_enroll\_endpoint) | Determines which Trustgrid Tenant the node is registered to | `string` | `"https://keymaster.trustgrid.io/v2/enroll"` | no |
-| <a name="input_instance_profile_name"></a> [instance\_profile\_name](#input\_instance\_profile\_name) | IAM Instance Profile the Trustgrid EC2 node will use | `string` | n/a | yes |
+| <a name="input_instance_profile_name"></a> [instance\_profile\_name](#input\_instance\_profile\_name) | IAM Instance Profile the Trustgrid EC2 node will use for cluster route management. | `string` | `null` | no |
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | Node instance type | `string` | `"t3.small"` | no |
 | <a name="input_is_appgateway"></a> [is\_appgateway](#input\_is\_appgateway) | Determines if security group should allow port 443 inbound for Application Gateway | `bool` | `false` | no |
 | <a name="input_is_tggateway"></a> [is\_tggateway](#input\_is\_tggateway) | Determines if security group should allow tcp/udp port 8443 inbound for Trustgrid Tunnels | `bool` | `false` | no |
@@ -65,6 +66,9 @@ No modules.
 | <a name="input_name"></a> [name](#input\_name) | Instance name | `string` | n/a | yes |
 | <a name="input_root_block_device_encrypt"></a> [root\_block\_device\_encrypt](#input\_root\_block\_device\_encrypt) | Should the root device be encrypted in AWS | `bool` | `true` | no |
 | <a name="input_root_block_device_size"></a> [root\_block\_device\_size](#input\_root\_block\_device\_size) | Size of the root volume in GB | `number` | `30` | no |
+| <a name="input_tggateway_port"></a> [tggateway\_port](#input\_tggateway\_port) | Port for Trustgrid Gateway (TCP/UDP tunnel) | `number` | `8443` | no |
+| <a name="input_trustgrid_ami_id"></a> [trustgrid\_ami\_id](#input\_trustgrid\_ami\_id) | Optional: Explicit Trustgrid AMI ID to use for the EC2 node. If not set, the latest matching AMI will be used. | `string` | `null` | no |
+| <a name="input_wggateway_port"></a> [wggateway\_port](#input\_wggateway\_port) | Port for Wireguard Gateway (UDP) | `number` | `51820` | no |
 
 ## Outputs
 
