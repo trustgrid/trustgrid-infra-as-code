@@ -126,6 +126,8 @@ The `google_project_iam_binding` resource used by `trustgrid_cluster_route_role`
 
 Placing node A in `zone_a` and node B in `zone_b` within the same region provides protection against single-zone outages. For stronger fault isolation, use zones in different regions and ensure the subnetworks span multiple regions, or deploy separate regional gateway clusters.
 
+`zone_a` and `zone_b` **must be different values**. A cross-variable validation block on `zone_a` enforces this constraint at `terraform plan` time — the plan will fail with a clear error if both zones are identical. Note that `terraform validate` alone does not evaluate cross-variable constraints; always run `terraform plan` to catch this error before applying.
+
 ## IP stability on redeploy
 
 Each node's `google_compute_address` resource is owned by the compute module independently of the instance. Replacing an instance (e.g. via `terraform taint`) preserves the same external IP. Edge nodes do not need to be reconfigured after a gateway node replacement.

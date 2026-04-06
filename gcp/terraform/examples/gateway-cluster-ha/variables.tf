@@ -20,6 +20,11 @@ variable "cluster_name" {
 variable "zone_a" {
   type        = string
   description = "GCP zone for gateway node A (e.g. us-central1-a). Choose a different zone from zone_b for cross-zone HA."
+
+  validation {
+    condition     = var.zone_a != var.zone_b
+    error_message = "zone_a and zone_b must be different zones to achieve cross-zone high availability."
+  }
 }
 
 variable "zone_b" {
