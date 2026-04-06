@@ -87,6 +87,7 @@
     {
       "id": 6,
       "title": "Examples for onboarding and HA",
+      "passes": true,
       "acceptanceCriteria": [
         "single-node-manual example exists",
         "single-node-auto example exists",
