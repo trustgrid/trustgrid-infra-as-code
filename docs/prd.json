@@ -36,6 +36,7 @@
     {
       "id": 1,
       "title": "Single module for manual+auto registration",
+      "passes": true,
       "acceptanceCriteria": [
         "registration_mode supports manual and auto",
         "license optional in manual mode",
