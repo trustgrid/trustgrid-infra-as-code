@@ -1,0 +1,107 @@
+{
+  "projectName": "trustgrid-infra-as-code — GCP Terraform Module Suite (v1)",
+  "projectDescription": "Add first-class GCP Terraform support for Trustgrid deployments with a single node module supporting manual/auto registration, plus IAM/firewall helper modules and production-ready examples.",
+  "ticket": {
+    "number": 31,
+    "title": "Create TF modules for Google Cloud (GCP)",
+    "url": "https://github.com/trustgrid/trustgrid-infra-as-code/issues/31"
+  },
+  "branchName": "feature/31-gcp-terraform-modules",
+  "scope": {
+    "in": [
+      "gcp/ Terraform modules",
+      "gcp/ Terraform examples",
+      "gcp-focused README/module docs"
+    ],
+    "out": [
+      "AWS changes",
+      "Azure changes"
+    ]
+  },
+  "requirements": [
+    "Single node module supports both manual and auto registration",
+    "License optional in manual mode and required+validated in auto mode",
+    "Main module consumes existing network resources",
+    "Public exposure modes: direct_static_ip (default), byo_public_ip, private_only",
+    "Gateway ingress via direct public IP in v1 (no LB)",
+    "Preserve public IP for redeploy stability",
+    "Registration key supported as sensitive variable",
+    "Service account helper module (outside main module)",
+    "IAM helper module for HA route management",
+    "Main module does not manage firewall rules; helper modules do",
+    "Production image defaults with override and explicit pinning support",
+    "Examples: single-node-manual, single-node-auto, dual-node-ha"
+  ],
+  "userStories": [
+    {
+      "id": 1,
+      "title": "Single module for manual+auto registration",
+      "acceptanceCriteria": [
+        "registration_mode supports manual and auto",
+        "license optional in manual mode",
+        "license required/validated in auto mode",
+        "registration_key input is sensitive"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Public exposure modes and redeploy IP stability",
+      "acceptanceCriteria": [
+        "Supports direct_static_ip, byo_public_ip, private_only",
+        "Default is direct_static_ip",
+        "Public IP stability objective met for redeploy in default mode",
+        "No LB requirement in v1"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Externalized network and firewall ownership",
+      "acceptanceCriteria": [
+        "Main module consumes existing subnet/VPC resources",
+        "Main module does not create firewall rules",
+        "Firewall helpers provide least-privilege mgmt/gateway patterns"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "IAM helper modules for identity and HA routes",
+      "acceptanceCriteria": [
+        "Service account helper creates account and outputs email",
+        "Route role helper creates role/binding for HA route management",
+        "Main module accepts service_account_email and creates no service account"
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Image defaults and override controls",
+      "acceptanceCriteria": [
+        "Default image points to production Trustgrid project/family",
+        "Supports project/family override for test variants",
+        "Supports explicit image pinning"
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Examples for onboarding and HA",
+      "acceptanceCriteria": [
+        "single-node-manual example exists",
+        "single-node-auto example exists",
+        "dual-node-ha example exists using IAM helper"
+      ]
+    }
+  ],
+  "testPlan": [
+    "Run terraform fmt -recursive in gcp tree",
+    "Run terraform init -backend=false && terraform validate in each new module",
+    "Run terraform init -backend=false && terraform validate in each new example",
+    "Negative validation test: auto mode without license fails",
+    "Negative validation test: invalid exposure mode fails",
+    "Static check: main module does not include firewall or service-account resources",
+    "Static check: dual NIC and can_ip_forward=true are present"
+  ],
+  "risksAssumptions": [
+    "Least-privilege HA route IAM actions may require refinement after live failover tests",
+    "Control-plane egress destination list may evolve and should be extensible",
+    "Trustgrid image project/family IDs are assumed available to deployment principals"
+  ]
+}
