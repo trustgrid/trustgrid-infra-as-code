@@ -113,7 +113,7 @@ variable "image_name" {
   default     = null
 
   validation {
-    condition     = var.image_name == null || length(trimspace(var.image_name)) > 0
+    condition     = var.image_name == null || try(length(trimspace(var.image_name)) > 0, false)
     error_message = "image_name must not be an empty string. Set to null to use family-based image resolution instead."
   }
 }
