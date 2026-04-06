@@ -15,12 +15,38 @@ data "google_compute_image" "node_image" {
   family  = var.image_family
 }
 
+## In direct_static_ip mode this module creates and owns a regional static
+## external IP. Owning the address resource independently of the instance means
+## the IP is preserved across instance replacement (terraform destroy + apply or
+## taint), satisfying the redeploy IP-stability objective.
+resource "google_compute_address" "management_external" {
+  count = var.public_exposure_mode == "direct_static_ip" ? 1 : 0
+
+  name         = "${var.name}-mgmt-ext"
+  address_type = "EXTERNAL"
+  ## Region is derived from the zone by trimming the zone suffix (e.g.
+  ## "us-central1-a" → "us-central1"). GCP static addresses are regional.
+  region      = join("-", slice(split("-", var.zone), 0, length(split("-", var.zone)) - 1))
+  description = "Module-managed static external IP for Trustgrid node ${var.name} management interface. Preserved across instance redeployment."
+}
+
 locals {
   ## Use the explicitly pinned image name when supplied; fall back to the
   ## family-resolved self_link so Terraform never accidentally re-resolves
   ## to a newer image on re-apply (lifecycle ignore_changes = all handles
   ## the instance, but we keep the reference deterministic at plan time).
   boot_image = var.image_name != null ? var.image_name : data.google_compute_image.node_image[0].self_link
+
+  ## Resolve the effective external IP for the management interface based on
+  ## the chosen public_exposure_mode:
+  ##   direct_static_ip → address of the module-created resource
+  ##   byo_public_ip    → caller-supplied address string
+  ##   private_only     → null (no access_config block)
+  management_external_ip = (
+    var.public_exposure_mode == "direct_static_ip" ? google_compute_address.management_external[0].address :
+    var.public_exposure_mode == "byo_public_ip" ? var.management_external_ip_address :
+    null
+  )
 
   ## Render the startup script for the chosen registration mode.
   ## In manual mode the script exits immediately; in auto mode it writes the
@@ -43,9 +69,19 @@ resource "google_compute_instance" "node" {
 
   tags = var.network_tags
 
-  ## Management / WAN interface (nic0)
+  ## Management / WAN interface (nic0).
+  ## An access_config block is included for direct_static_ip and byo_public_ip
+  ## modes. For private_only mode no access_config is added, leaving nic0
+  ## without an external IP.
   network_interface {
     subnetwork = var.management_subnetwork
+
+    dynamic "access_config" {
+      for_each = local.management_external_ip != null ? [local.management_external_ip] : []
+      content {
+        nat_ip = access_config.value
+      }
+    }
   }
 
   ## Data / LAN interface (nic1)

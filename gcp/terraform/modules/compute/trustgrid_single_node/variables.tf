@@ -111,6 +111,30 @@ variable "network_tags" {
   default     = []
 }
 
+## ─── Public Exposure ───────────────────────────────────────────────────────────
+
+variable "public_exposure_mode" {
+  type        = string
+  description = "Controls how the management interface is exposed to the internet. 'direct_static_ip' (default) creates a module-owned static regional external IP and attaches it to nic0, preserving the same IP across redeployments. 'byo_public_ip' attaches a caller-provided reserved external IP (supply management_external_ip_address). 'private_only' attaches no external IP to nic0."
+  default     = "direct_static_ip"
+
+  validation {
+    condition     = contains(["direct_static_ip", "byo_public_ip", "private_only"], var.public_exposure_mode)
+    error_message = "public_exposure_mode must be one of: direct_static_ip, byo_public_ip, private_only."
+  }
+}
+
+variable "management_external_ip_address" {
+  type        = string
+  description = "The reserved external IP address (not self_link) to attach to the management interface (nic0). Required when public_exposure_mode is 'byo_public_ip'. Must be a regional static external IP address in the same region as the instance. Ignored for all other modes."
+  default     = null
+
+  validation {
+    condition     = !(var.public_exposure_mode == "byo_public_ip" && var.management_external_ip_address == null)
+    error_message = "management_external_ip_address is required when public_exposure_mode is 'byo_public_ip'."
+  }
+}
+
 ## ─── IAM ───────────────────────────────────────────────────────────────────────
 
 variable "service_account_email" {
