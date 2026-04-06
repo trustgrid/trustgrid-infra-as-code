@@ -6,10 +6,35 @@
 - `lifecycle { ignore_changes = all }` on every VM/instance resource
 - `set -euo pipefail` mandatory on every `.sh.tpl` template
 - TF_DOCS markers must be kept in sync with variables/outputs when adding new variables
+- For conditional GCP static IP resources use `count = var.mode == "x" ? 1 : 0` and reference via `[0]`; region is derived from zone by dropping last segment: `join("-", slice(split("-", var.zone), 0, length(split("-", var.zone)) - 1))`
+- `dynamic "access_config"` block on `network_interface` is the correct pattern for optional external IP assignment; `for_each = local.external_ip != null ? [local.external_ip] : []`
 
 ---
 
-## 2026-04-06 - Story 1 Review Fix
+## 2026-04-06 - Story 2 - Public exposure modes and redeploy IP stability
+- What was implemented
+  - Added `public_exposure_mode` variable with validation (direct_static_ip | byo_public_ip | private_only, default: direct_static_ip)
+  - Added `management_external_ip_address` variable (required only in byo_public_ip mode, validated)
+  - Added `google_compute_address.management_external` resource (count=1 in direct_static_ip mode only); region derived from zone by dropping trailing segment
+  - Added `management_external_ip` local that resolves to the correct IP across all three modes (or null for private_only)
+  - Replaced static `network_interface` nic0 block with a `dynamic "access_config"` driven by `local.management_external_ip`; private_only produces no access_config
+  - Added two new outputs: `management_external_ip` (effective address, all modes) and `management_external_ip_self_link` (non-null only in direct_static_ip mode)
+  - Updated README with public exposure modes table, three full usage examples, redeployment stability guidance, and updated TF_DOCS inputs/outputs table
+- Files changed
+  - `gcp/terraform/modules/compute/trustgrid_single_node/variables.tf`
+  - `gcp/terraform/modules/compute/trustgrid_single_node/main.tf`
+  - `gcp/terraform/modules/compute/trustgrid_single_node/outputs.tf`
+  - `gcp/terraform/modules/compute/trustgrid_single_node/README.md`
+  - `docs/prd.json` (Story 2 passes: true)
+  - `docs/progress.txt`
+- **Learnings for future iterations:**
+  - `google_compute_address` is regional; derive region from zone with `join("-", slice(split("-", var.zone), 0, length(split("-", var.zone)) - 1))`
+  - `dynamic "access_config" { for_each = local.ip != null ? [local.ip] : [] }` is the idiomatic pattern for optional external IPs on GCP network interfaces
+  - Validation blocks that reference a *different* variable (cross-variable validation) work in HCL: `!(var.mode == "x" && var.other == null)` — validated and working
+  - The `google_compute_address` resource is independent of the instance, so the IP survives `terraform taint` on the instance — this is the key mechanism for redeploy IP stability
+  - No LB resource is needed; direct static IP attachment via `access_config.nat_ip` is sufficient for v1 gateway ingress
+---
+
 - What was implemented
   - Created `gcp/terraform/modules/compute/trustgrid_single_node/templates/bootstrap.sh.tpl`: conditional startup script with `set -euo pipefail`; in `auto` mode writes license + registration_key to `/usr/local/trustgrid/` and calls `bin/register.sh` in a retry loop; in `manual` mode exits immediately with informational log
   - Updated `main.tf`: added `startup_script` local via `templatefile()`, wired to `metadata_startup_script` on the instance, added `tg-registration-key` conditional injection into metadata block, added explanatory comments on the metadata merge

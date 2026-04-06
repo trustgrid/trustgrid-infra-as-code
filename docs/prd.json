@@ -46,6 +46,7 @@
     {
       "id": 2,
       "title": "Public exposure modes and redeploy IP stability",
+      "passes": true,
       "acceptanceCriteria": [
         "Supports direct_static_ip, byo_public_ip, private_only",
         "Default is direct_static_ip",
