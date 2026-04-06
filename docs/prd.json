@@ -67,6 +67,7 @@
     {
       "id": 4,
       "title": "IAM helper modules for identity and HA routes",
+      "passes": true,
       "acceptanceCriteria": [
         "Service account helper creates account and outputs email",
         "Route role helper creates role/binding for HA route management",

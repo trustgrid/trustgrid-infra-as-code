@@ -1,5 +1,9 @@
 ## Codebase Patterns
-- Network firewall modules live under `gcp/terraform/modules/network/`; compute modules under `gcp/terraform/modules/compute/`
+- Network firewall modules live under `gcp/terraform/modules/network/`; compute modules under `gcp/terraform/modules/compute/`; IAM modules under `gcp/terraform/modules/iam/`
+- IAM service account module outputs a `member` output pre-formatted as `serviceAccount:<email>` for direct use in `google_project_iam_binding.members`
+- `google_project_iam_binding` is AUTHORITATIVE for its role — use it when you own the full membership of a custom role; use `google_project_iam_member` for non-authoritative (additive) bindings
+- GCP route failover requires exactly 4 permissions: `compute.routes.{list,get,create,delete}` — routes are project-global so the IAM binding must be at project scope
+- Custom role IDs: `can(regex("^[a-zA-Z0-9_.]{1,64}$", var.role_id))` is the correct validation pattern
 - `log_config { metadata = var.enable_logging ? "INCLUDE_ALL_METADATA" : "EXCLUDE_ALL_METADATA" }` is the correct pattern for optional GCP firewall logging
 - GCP firewall rule port strings must be quoted even when using variable interpolation: `ports = ["${var.gateway_port}"]`
 - GCP modules use `~> 6.0` provider constraint (same tilde-range style as Azure/ThousandEyes)
@@ -12,6 +16,43 @@
 - For conditional GCP static IP resources use `count = var.mode == "x" ? 1 : 0` and reference via `[0]`; region is derived from zone by dropping last segment: `join("-", slice(split("-", var.zone), 0, length(split("-", var.zone)) - 1))`
 - `dynamic "access_config"` block on `network_interface` is the correct pattern for optional external IP assignment; `for_each = local.external_ip != null ? [local.external_ip] : []`
 
+---
+
+## 2026-04-06 - Story 4 - IAM helper modules for identity and HA routes
+- What was implemented
+  - Created `gcp/terraform/modules/iam/trustgrid_node_service_account/`: service account helper
+    - Creates `google_service_account` with configurable account_id/display_name/description/project
+    - Outputs: `email` (for compute module), `unique_id`, `name` (FQ resource name), `member` (pre-formatted `serviceAccount:<email>` for IAM bindings)
+    - Validation: account_id must be 6–30 chars, start lowercase, only lowercase/digits/hyphens
+  - Created `gcp/terraform/modules/iam/trustgrid_cluster_route_role/`: HA route management IAM helper
+    - Creates `google_project_iam_custom_role` with least-privilege permissions: `compute.routes.{list,get,create,delete}`
+    - Creates `google_project_iam_binding` binding the custom role to supplied service account email(s)
+    - Accepts `service_account_emails` list (validated: non-empty, valid SA email format)
+    - Configurable `role_id`, `role_title`, `role_description` with sensible defaults
+    - Authoritative binding — prevents privilege creep; README documents non-authoritative alternative
+  - Confirmed: compute module (`trustgrid_single_node`) already accepts `service_account_email` variable, uses it on `service_account {}` block, and creates NO `google_service_account` resource
+  - `terraform fmt -check -recursive` passes on entire gcp/ tree
+  - `terraform init -backend=false && terraform validate` passes on both new IAM modules and existing compute module
+- Files changed
+  - `gcp/terraform/modules/iam/trustgrid_node_service_account/main.tf` (new)
+  - `gcp/terraform/modules/iam/trustgrid_node_service_account/variables.tf` (new)
+  - `gcp/terraform/modules/iam/trustgrid_node_service_account/outputs.tf` (new)
+  - `gcp/terraform/modules/iam/trustgrid_node_service_account/README.md` (new)
+  - `gcp/terraform/modules/iam/trustgrid_node_service_account/.terraform.lock.hcl` (new)
+  - `gcp/terraform/modules/iam/trustgrid_cluster_route_role/main.tf` (new)
+  - `gcp/terraform/modules/iam/trustgrid_cluster_route_role/variables.tf` (new)
+  - `gcp/terraform/modules/iam/trustgrid_cluster_route_role/outputs.tf` (new)
+  - `gcp/terraform/modules/iam/trustgrid_cluster_route_role/README.md` (new)
+  - `gcp/terraform/modules/iam/trustgrid_cluster_route_role/.terraform.lock.hcl` (new)
+  - `docs/prd.json` (Story 4 passes: true)
+  - `docs/progress.txt`
+- **Learnings for future iterations:**
+  - GCP routes are project-global — IAM binding for route management must be at project scope (no per-VPC route IAM)
+  - Minimum permissions for HA route failover: `compute.routes.{list,get,create,delete}` (4 total, not the full networkAdmin role)
+  - `google_project_iam_binding` is authoritative for its role — clears unlisted members; `google_project_iam_member` is additive/non-authoritative
+  - Service account `output "member"` pre-formatted as `serviceAccount:<email>` is the pattern used in `google_project_iam_binding.members`
+  - Custom role ID validation: `can(regex("^[a-zA-Z0-9_.]{1,64}$", var.role_id))` matches GCP requirements
+  - `alltrue([for x in var.list : condition])` is the correct pattern for validating every element in a list variable
 ---
 
 ## 2026-04-06 - Story 2 - Public exposure modes and redeploy IP stability
