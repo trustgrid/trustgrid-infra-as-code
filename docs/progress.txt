@@ -1,4 +1,5 @@
 ## Codebase Patterns
+- GCP examples use relative `source = "../../modules/…"` paths so `terraform validate` works in the repo without a tagged release; README documents switching to pinned GitHub source for external deployments
 - Network firewall modules live under `gcp/terraform/modules/network/`; compute modules under `gcp/terraform/modules/compute/`; IAM modules under `gcp/terraform/modules/iam/`
 - IAM service account module outputs a `member` output pre-formatted as `serviceAccount:<email>` for direct use in `google_project_iam_binding.members`
 - `google_project_iam_binding` is AUTHORITATIVE for its role — use it when you own the full membership of a custom role; use `google_project_iam_member` for non-authoritative (additive) bindings
@@ -21,7 +22,56 @@
 
 ---
 
-## 2026-04-06 - Story 5 - Image defaults and override controls
+## 2026-04-06 - Story 6 - Examples for onboarding and HA
+- What was implemented
+  - Created `gcp/terraform/examples/single-node-manual/`: edge node, manual registration
+    - `trustgrid_node_service_account` module → dedicated service account
+    - `trustgrid_mgmt_firewall` module → control-plane/DNS/metadata egress rules (tag-scoped)
+    - `trustgrid_single_node` module → `registration_mode = "manual"`, `public_exposure_mode = "direct_static_ip"` (static IP survives redeployment)
+    - Variables: project, region, name, zone, management_vpc_network, management_subnetwork, data_subnetwork
+    - Outputs: management_external_ip (for portal registration), internal IPs, instance name/self_link, SA email
+  - Created `gcp/terraform/examples/single-node-auto/`: edge node, auto registration
+    - Same service account and firewall helpers as manual example
+    - `trustgrid_single_node` with `registration_mode = "auto"`, `license` (sensitive, required), `registration_key` (sensitive, optional)
+    - Variables include `tg_license` (sensitive) and `tg_registration_key` (sensitive, optional)
+    - README documents `TF_VAR_tg_license` env-var pattern for secrets management
+  - Created `gcp/terraform/examples/gateway-cluster-ha/`: dual-node gateway cluster, HA route-failover
+    - Two `trustgrid_node_service_account` modules (node-a-sa, node-b-sa) — one per gateway
+    - `trustgrid_cluster_route_role` module — binds BOTH SA emails to least-privilege route-manager custom role (project scope)
+    - `trustgrid_mgmt_firewall` module — single call with `trustgrid-gateway` tag covers both nodes
+    - `trustgrid_gateway_firewall` module — ingress TCP/UDP 8443 from 0.0.0.0/0 (tag-scoped)
+    - Two `trustgrid_single_node` modules: node-a (zone_a) + node-b (zone_b), cross-zone HA, each with own static external IP
+    - Variables: cluster_name, zone_a, zone_b, tg_license, tg_registration_key (both sensitive), network vars
+    - Outputs: per-node external/internal/data IPs, names, SA emails, route role ID and bound members
+  - Module sources use relative paths (`../../modules/…`) for local validate; README documents GitHub source pattern for external use
+  - `terraform fmt -check -recursive` passes on full gcp/ tree
+  - `terraform init -backend=false && terraform validate` passes on all three examples
+- Files changed
+  - `gcp/terraform/examples/single-node-manual/main.tf` (new)
+  - `gcp/terraform/examples/single-node-manual/variables.tf` (new)
+  - `gcp/terraform/examples/single-node-manual/outputs.tf` (new)
+  - `gcp/terraform/examples/single-node-manual/README.md` (new)
+  - `gcp/terraform/examples/single-node-manual/.terraform.lock.hcl` (new)
+  - `gcp/terraform/examples/single-node-auto/main.tf` (new)
+  - `gcp/terraform/examples/single-node-auto/variables.tf` (new)
+  - `gcp/terraform/examples/single-node-auto/outputs.tf` (new)
+  - `gcp/terraform/examples/single-node-auto/README.md` (new)
+  - `gcp/terraform/examples/single-node-auto/.terraform.lock.hcl` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha/main.tf` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha/variables.tf` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha/outputs.tf` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha/README.md` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha/.terraform.lock.hcl` (new)
+  - `docs/prd.json` (Story 6 passes: true)
+  - `docs/progress.txt`
+- **Learnings for future iterations:**
+  - GCP examples should use relative `source = "../../modules/…"` paths during development — GitHub source refs require a tagged release; relative paths allow `terraform validate` to run in CI/PR branches before release
+  - For the HA cluster example, both node SA emails must be collected into a list and passed together to `trustgrid_cluster_route_role.service_account_emails` — the module handles the `google_project_iam_binding` with both members in a single call
+  - Tag `trustgrid-gateway` for gateway nodes (vs `trustgrid-mgmt` for plain edge nodes) to allow separate firewall rules when both node types share the same VPC
+  - README for each example should document: (1) which module outputs map to Trustgrid portal inputs, (2) the sensitive variable supply pattern (TF_VAR_*), (3) how to switch source paths to pinned GitHub refs for external use
+---
+
+
 - What was implemented
   - The core image-selection logic was already in place from prior iterations (image_project/image_family/image_name variables, data.google_compute_image, local.boot_image priority logic).
   - Added non-empty validation to `image_project`: `length(trimspace(var.image_project)) > 0`
