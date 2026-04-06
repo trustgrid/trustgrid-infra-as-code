@@ -77,6 +77,7 @@
     {
       "id": 5,
       "title": "Image defaults and override controls",
+      "passes": true,
       "acceptanceCriteria": [
         "Default image points to production Trustgrid project/family",
         "Supports project/family override for test variants",

@@ -15,6 +15,36 @@
 - TF_DOCS markers must be kept in sync with variables/outputs when adding new variables
 - For conditional GCP static IP resources use `count = var.mode == "x" ? 1 : 0` and reference via `[0]`; region is derived from zone by dropping last segment: `join("-", slice(split("-", var.zone), 0, length(split("-", var.zone)) - 1))`
 - `dynamic "access_config"` block on `network_interface` is the correct pattern for optional external IP assignment; `for_each = local.external_ip != null ? [local.external_ip] : []`
+- Image selection two-tier priority: (1) `image_name` set → used directly, project/family ignored; (2) `image_name = null` → `data.google_compute_image` resolves latest from `image_project`+`image_family`
+- Guard `image_name` against empty-string misuse with: `condition = var.image_name == null || length(trimspace(var.image_name)) > 0`
+- Guard `image_project` / `image_family` against empty strings with: `condition = length(trimspace(var.image_X)) > 0`
+
+---
+
+## 2026-04-06 - Story 5 - Image defaults and override controls
+- What was implemented
+  - The core image-selection logic was already in place from prior iterations (image_project/image_family/image_name variables, data.google_compute_image, local.boot_image priority logic).
+  - Added non-empty validation to `image_project`: `length(trimspace(var.image_project)) > 0`
+  - Added non-empty validation to `image_family`: `length(trimspace(var.image_family)) > 0`
+  - Added null-or-non-empty validation to `image_name`: `var.image_name == null || length(trimspace(var.image_name)) > 0` — prevents accidental `image_name = ""` which would silently bypass family lookup
+  - Updated all three image variable descriptions to be precise about priority, defaults, and override use cases
+  - Added multi-line `##` block comment above the image variable section in variables.tf documenting the two-tier selection logic and production recommendation
+  - Replaced brief "Explicit image pinning" README snippet with a full "Image selection" section covering: priority table, production pinning (recommended), production family lookup (default), and test/staging variant overrides
+  - Updated TF_DOCS table entries for `image_project`, `image_family`, and `image_name` with richer descriptions
+- Files changed
+  - `gcp/terraform/modules/compute/trustgrid_single_node/variables.tf` (image section rewritten with validations + block comment)
+  - `gcp/terraform/modules/compute/trustgrid_single_node/README.md` (new Image selection section, updated TF_DOCS rows)
+  - `docs/prd.json` (Story 5 passes: true)
+  - `docs/progress.txt`
+- **Learnings for future iterations:**
+  - Single-variable validation constraints (including `trimspace` checks) ARE caught by `terraform validate` — no plan needed for these
+  - `var.optional_string == null || length(trimspace(var.optional_string)) > 0` is the correct pattern for nullable strings that must not be empty when provided
+  - The `## ─── Section ─────` header style is the in-repo convention for grouping variable blocks; maintain it consistently
+  - TF_DOCS markers between `<!-- BEGIN_TF_DOCS -->` and `<!-- END_TF_DOCS -->` must be kept in sync manually when terraform-docs is not run as part of CI
+---
+- Image selection two-tier priority: (1) `image_name` set → used directly, project/family ignored; (2) `image_name = null` → `data.google_compute_image` resolves latest from `image_project`+`image_family`
+- Guard `image_name` against empty-string misuse with: `condition = var.image_name == null || length(trimspace(var.image_name)) > 0`
+- Guard `image_project` / `image_family` against empty strings with: `condition = length(trimspace(var.image_X)) > 0`
 
 ---
 

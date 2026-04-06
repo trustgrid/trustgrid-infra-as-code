@@ -74,23 +74,48 @@ variable "enable_secure_boot" {
 }
 
 ## ─── Image ─────────────────────────────────────────────────────────────────────
+##
+## Image selection follows a two-tier priority:
+##   1. Explicit pin  — set image_name to a full self_link or bare image name.
+##                      image_project and image_family are ignored entirely.
+##   2. Family lookup — leave image_name null (default). Terraform resolves the
+##                      latest image in image_family from image_project at plan time.
+##
+## Production recommendation: pin image_name to a known-good release for
+## stability.  Use family lookup (image_project + image_family) for test
+## environments where "latest" is acceptable.
 
 variable "image_project" {
   type        = string
-  description = "GCP project that owns the Trustgrid node image. Used when resolving an image by family. Set to the Trustgrid production image project by default."
+  description = "GCP project that owns the Trustgrid node image. Used only when resolving an image by family (image_name is null). Defaults to the Trustgrid production image project. Override for test variants hosted in a separate project."
   default     = "trustgrid-images"
+
+  validation {
+    condition     = length(trimspace(var.image_project)) > 0
+    error_message = "image_project must not be empty."
+  }
 }
 
 variable "image_family" {
   type        = string
-  description = "Image family to resolve the latest Trustgrid node image from. Ignored when image_name is set."
+  description = "Image family to resolve the latest Trustgrid node image from. Used only when image_name is null. Defaults to the Trustgrid production family. Override for test variants (e.g. 'trustgrid-node-staging')."
   default     = "trustgrid-node"
+
+  validation {
+    condition     = length(trimspace(var.image_family)) > 0
+    error_message = "image_family must not be empty."
+  }
 }
 
 variable "image_name" {
   type        = string
-  description = "Explicit image name or self_link to pin the instance to a specific Trustgrid node image version. When set, image_project and image_family are ignored."
+  description = "Explicit image name or self_link to pin the instance to a specific Trustgrid image version (e.g. 'projects/trustgrid-images/global/images/trustgrid-node-20240101' or 'trustgrid-node-20240101'). When set, image_project and image_family are ignored. Recommended for production to avoid unintended image upgrades on re-apply."
   default     = null
+
+  validation {
+    condition     = var.image_name == null || length(trimspace(var.image_name)) > 0
+    error_message = "image_name must not be an empty string. Set to null to use family-based image resolution instead."
+  }
 }
 
 ## ─── Network ───────────────────────────────────────────────────────────────────

@@ -179,13 +179,27 @@ module "trustgrid_node" {
 }
 ```
 
-### Explicit image pinning
+---
+
+## Image selection
+
+### How image resolution works
+
+| Priority | Condition | Resolved image |
+|---|---|---|
+| **1 — explicit pin** | `image_name` is set | `image_name` value used directly; `image_project` and `image_family` are ignored |
+| **2 — family lookup** | `image_name = null` (default) | Terraform resolves the latest image in `image_family` from `image_project` at plan time |
+
+### Production: explicit pinning (recommended)
+
+Pin `image_name` to a known-good release so that re-applying a configuration
+**never silently upgrades** the Trustgrid image on an existing deployment.
 
 ```hcl
 module "trustgrid_node" {
   source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
 
-  name                  = "my-tg-node"
+  name                  = "prod-tg-node"
   zone                  = "us-central1-a"
   management_subnetwork = "projects/my-project/regions/us-central1/subnetworks/mgmt-subnet"
   data_subnetwork       = "projects/my-project/regions/us-central1/subnetworks/data-subnet"
@@ -194,9 +208,64 @@ module "trustgrid_node" {
   registration_mode = "auto"
   license           = var.tg_license
 
-  # Pin to an exact image rather than resolving from a family
+  # Pin to a specific release — recommended for production.
+  # Use the full self_link or a bare image name from the trustgrid-images project.
   image_name = "projects/trustgrid-images/global/images/trustgrid-node-20240101"
 }
+```
+
+> **Stability note:** because the instance resource uses `lifecycle { ignore_changes = all }`,
+> changing `image_name` after initial deployment will not automatically replace the VM.
+> Use `terraform taint` or destroy + re-apply to roll out a new image to an existing node.
+
+### Production: family-based lookup (default)
+
+Omit `image_name` (or set it explicitly to `null`) to always resolve the latest
+image in the production family.  This is the default behaviour and is safe for
+initial deployments or automation pipelines where controlled upgrades are managed
+externally (e.g. via image promotion workflows).
+
+```hcl
+module "trustgrid_node" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+
+  name                  = "prod-tg-node"
+  zone                  = "us-central1-a"
+  management_subnetwork = "projects/my-project/regions/us-central1/subnetworks/mgmt-subnet"
+  data_subnetwork       = "projects/my-project/regions/us-central1/subnetworks/data-subnet"
+  service_account_email = module.trustgrid_sa.service_account_email
+
+  # image_name defaults to null → resolves latest from image_project/image_family
+  # image_project defaults to "trustgrid-images"
+  # image_family  defaults to "trustgrid-node"
+}
+```
+
+### Test / staging variants: project and family overrides
+
+Override `image_project` and/or `image_family` to resolve images from a test or
+staging image project without changing any other module behaviour.
+
+```hcl
+module "trustgrid_node_staging" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+
+  name                  = "staging-tg-node"
+  zone                  = "us-central1-a"
+  management_subnetwork = "projects/my-project/regions/us-central1/subnetworks/mgmt-subnet"
+  data_subnetwork       = "projects/my-project/regions/us-central1/subnetworks/data-subnet"
+  service_account_email = module.trustgrid_sa.service_account_email
+
+  # Override both project and family to target a staging image track.
+  image_project = "my-test-image-project"
+  image_family  = "trustgrid-node-staging"
+}
+```
+
+To pin a test variant to a specific image from a non-production project:
+
+```hcl
+  image_name = "projects/my-test-image-project/global/images/trustgrid-node-rc-20240201"
 ```
 
 ---
@@ -294,9 +363,9 @@ No modules.
 | <a name="input_boot_disk_size_gb"></a> [boot\_disk\_size\_gb](#input\_boot\_disk\_size\_gb) | Boot disk size in GB (minimum 30). | `number` | `30` | no |
 | <a name="input_boot_disk_type"></a> [boot\_disk\_type](#input\_boot\_disk\_type) | Boot disk type: pd-ssd, pd-balanced, or pd-standard. | `string` | `"pd-ssd"` | no |
 | <a name="input_enable_secure_boot"></a> [enable\_secure\_boot](#input\_enable\_secure\_boot) | Enable Shielded VM secure boot. | `bool` | `true` | no |
-| <a name="input_image_project"></a> [image\_project](#input\_image\_project) | GCP project owning the Trustgrid image. | `string` | `"trustgrid-images"` | no |
-| <a name="input_image_family"></a> [image\_family](#input\_image\_family) | Image family for latest Trustgrid node image. | `string` | `"trustgrid-node"` | no |
-| <a name="input_image_name"></a> [image\_name](#input\_image\_name) | Explicit image name/self\_link. Overrides image\_project and image\_family. | `string` | `null` | no |
+| <a name="input_image_project"></a> [image\_project](#input\_image\_project) | GCP project owning the Trustgrid image. Used only when `image_name` is null. Defaults to the Trustgrid production project (`trustgrid-images`). Override for test variants hosted in a separate project. | `string` | `"trustgrid-images"` | no |
+| <a name="input_image_family"></a> [image\_family](#input\_image\_family) | Image family for latest Trustgrid node image. Used only when `image_name` is null. Defaults to the Trustgrid production family (`trustgrid-node`). Override for test variants (e.g. `trustgrid-node-staging`). | `string` | `"trustgrid-node"` | no |
+| <a name="input_image_name"></a> [image\_name](#input\_image\_name) | Explicit image name or self\_link to pin the instance to a specific image version. When set, `image_project` and `image_family` are ignored. Recommended for production to prevent unintended image upgrades on re-apply. | `string` | `null` | no |
 | <a name="input_network_tags"></a> [network\_tags](#input\_network\_tags) | Network tags for targeting VPC firewall rules. | `list(string)` | `[]` | no |
 | <a name="input_extra_metadata"></a> [extra\_metadata](#input\_extra\_metadata) | Additional instance metadata key/value pairs. Do not include `tg-license` or `tg-registration-key`; use the `license` and `registration_key` variables instead. | `map(string)` | `{}` | no |
 
