@@ -1,4 +1,7 @@
 ## Codebase Patterns
+- Network firewall modules live under `gcp/terraform/modules/network/`; compute modules under `gcp/terraform/modules/compute/`
+- `log_config { metadata = var.enable_logging ? "INCLUDE_ALL_METADATA" : "EXCLUDE_ALL_METADATA" }` is the correct pattern for optional GCP firewall logging
+- GCP firewall rule port strings must be quoted even when using variable interpolation: `ports = ["${var.gateway_port}"]`
 - GCP modules use `~> 6.0` provider constraint (same tilde-range style as Azure/ThousandEyes)
 - Bootstrap templates live in `<module>/templates/bootstrap.sh.tpl`, wired via `templatefile()` into a `locals {}` block, then consumed by `metadata_startup_script` on the instance resource
 - Sensitive variables (license, registration_key) are coerced from `null` to `""` before passing to templatefile(): `var.license != null ? var.license : ""`
@@ -53,4 +56,41 @@
   - Null-to-empty-string coercion must happen before `templatefile()` — HCL templatefile variables can't receive null
   - The bootstrap template uses `$${VAR}` (double-dollar) for shell variable references to escape Terraform's templatefile interpolation, and `${tf_var}` (single-dollar) for Terraform-injected values
   - `docs/review.md` was untracked and got committed in the main fix commit — next time stage selectively to avoid this
+---
+
+## 2026-04-06 - Story 3 - Externalized network and firewall ownership
+- What was implemented
+  - Confirmed: compute module (`trustgrid_single_node`) contains zero `google_compute_firewall` resources — boundary enforced
+  - Created `gcp/terraform/modules/network/trustgrid_mgmt_firewall/`: management/control-plane egress helper
+    - `control_plane_egress`: TCP 443+8443 → Trustgrid control plane CIDRs (35.171.100.16/28, 34.223.12.192/28)
+    - `dns_egress` (optional, default on): TCP/UDP 53 → configurable DNS resolvers (default: Google Public DNS)
+    - `metadata_egress` (optional, default on): TCP 80 → GCP metadata server 169.254.169.254/32
+    - All rules target via `target_tags`, support optional `enable_logging`, configurable `priority`
+  - Created `gcp/terraform/modules/network/trustgrid_gateway_firewall/`: gateway ingress helper
+    - `gateway_ingress`: TCP+UDP on `gateway_port` (default 8443) from `source_ranges` (default 0.0.0.0/0 + ::/0)
+    - Configurable port, source ranges, target tags, priority, logging
+  - Both modules: `required_providers { google ~> 6.0 }`, `snake_case`, full variable descriptions/types, outputs with descriptions, README with TF_DOCS markers
+  - `terraform fmt -recursive` passes on both modules and full gcp tree
+  - `terraform init -backend=false && terraform validate` passes on both modules
+  - Control-plane CIDRs sourced from official docs: https://docs.trustgrid.io/help-center/kb/site-requirements/
+  - Gateway ingress port/requirements sourced from: https://docs.trustgrid.io/tutorials/deployments/deploy-gcp/
+- Files changed
+  - `gcp/terraform/modules/network/trustgrid_mgmt_firewall/main.tf` (new)
+  - `gcp/terraform/modules/network/trustgrid_mgmt_firewall/variables.tf` (new)
+  - `gcp/terraform/modules/network/trustgrid_mgmt_firewall/outputs.tf` (new)
+  - `gcp/terraform/modules/network/trustgrid_mgmt_firewall/README.md` (new)
+  - `gcp/terraform/modules/network/trustgrid_mgmt_firewall/.terraform.lock.hcl` (new)
+  - `gcp/terraform/modules/network/trustgrid_gateway_firewall/main.tf` (new)
+  - `gcp/terraform/modules/network/trustgrid_gateway_firewall/variables.tf` (new)
+  - `gcp/terraform/modules/network/trustgrid_gateway_firewall/outputs.tf` (new)
+  - `gcp/terraform/modules/network/trustgrid_gateway_firewall/README.md` (new)
+  - `gcp/terraform/modules/network/trustgrid_gateway_firewall/.terraform.lock.hcl` (new)
+  - `docs/prd.json` (Story 3 passes: true)
+  - `docs/progress.txt`
+- **Learnings for future iterations:**
+  - Trustgrid control-plane CIDRs: `35.171.100.16/28` and `34.223.12.192/28` (TCP 443+8443 both required)
+  - GCP firewall `log_config { metadata = "INCLUDE_ALL_METADATA" | "EXCLUDE_ALL_METADATA" }` is the correct syntax for conditional logging
+  - Port values in GCP firewall `allow.ports` must be quoted strings, even when interpolating a number variable: `["${var.gateway_port}"]`
+  - `direction = "EGRESS"` uses `destination_ranges`; `direction = "INGRESS"` uses `source_ranges` — do not mix these attributes
+  - Gateway nodes need BOTH the `trustgrid_mgmt_firewall` (egress) AND `trustgrid_gateway_firewall` (ingress) modules; edge nodes only need `trustgrid_mgmt_firewall`
 ---

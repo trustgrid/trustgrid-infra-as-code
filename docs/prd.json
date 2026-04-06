@@ -57,6 +57,7 @@
     {
       "id": 3,
       "title": "Externalized network and firewall ownership",
+      "passes": true,
       "acceptanceCriteria": [
         "Main module consumes existing subnet/VPC resources",
         "Main module does not create firewall rules",
