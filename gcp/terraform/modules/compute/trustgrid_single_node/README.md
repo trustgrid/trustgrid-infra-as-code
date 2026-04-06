@@ -221,6 +221,36 @@ terraform state show 'module.trustgrid_node.google_compute_address.management_ex
 
 ---
 
+## Validation and testing notes
+
+### Cross-variable constraints are enforced at plan-time
+
+This module contains two validation rules that reference more than one variable:
+
+| Rule | Variables involved | Error message |
+|---|---|---|
+| `license` required in `auto` mode | `registration_mode`, `license` | "license is required when registration_mode is 'auto'." |
+| `management_external_ip_address` required in `byo_public_ip` mode | `public_exposure_mode`, `management_external_ip_address` | "management_external_ip_address is required when public_exposure_mode is 'byo_public_ip'." |
+
+**In Terraform < 1.6** validation blocks that reference a second variable are deferred to
+`terraform plan` time — `terraform validate` alone will not catch violations.
+
+```bash
+# Validates single-variable constraints only (enum checks, format checks)
+terraform validate
+
+# Validates ALL constraints including cross-variable rules — required for negative tests
+terraform plan -no-color
+# Note: plan will fail at the provider auth step for cross-account/offline testing,
+# but variable validation errors are emitted before provider calls and will still appear.
+```
+
+When writing negative test fixtures for cross-variable constraints, document this
+difference in the fixture header and configure the test runner to assert on
+`terraform plan` exit code, not `terraform validate`.
+
+---
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

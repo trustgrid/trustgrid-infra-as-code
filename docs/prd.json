@@ -95,8 +95,10 @@
     "Run terraform fmt -recursive in gcp tree",
     "Run terraform init -backend=false && terraform validate in each new module",
     "Run terraform init -backend=false && terraform validate in each new example",
-    "Negative validation test: auto mode without license fails",
-    "Negative validation test: invalid exposure mode fails",
+    "Negative validation test: invalid registration_mode enum fails terraform validate (single-variable constraint — caught at validate-time)",
+    "Negative validation test: auto mode without license — terraform validate passes (cross-variable constraint); terraform plan fails with expected error (plan-time enforcement)",
+    "Negative validation test: byo_public_ip mode without management_external_ip_address — terraform validate passes (cross-variable constraint); terraform plan fails with expected error (plan-time enforcement)",
+    "NOTE: Cross-variable validation blocks (constraints referencing more than one variable) are evaluated at 'terraform plan' time, NOT at 'terraform validate' time in Terraform < 1.6. Negative fixtures for these constraints must be verified with 'terraform plan', not 'terraform validate'. See AGENTS.md for guidance.",
     "Static check: main module does not include firewall or service-account resources",
     "Static check: dual NIC and can_ip_forward=true are present"
   ],

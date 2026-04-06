@@ -72,6 +72,34 @@ terraform-docs markdown table --output-file README.md --output-mode inject .
 `.github/workflows/release.yml` bumps a semver tag on merge to `main`. It does **not**
 run Terraform validate or plan. There is no automated Terraform CI at this time.
 
+### Cross-variable validation constraints require `terraform plan`
+
+Terraform validation blocks that reference **more than one variable** (cross-variable
+constraints) are **not evaluated by `terraform validate`** in Terraform < 1.6. They are
+deferred to `terraform plan` time.
+
+**Implication for testing:**
+
+- `terraform validate` only catches *single-variable* constraints (enum checks, format
+  checks, range checks that reference only `var.x`).
+- `terraform plan` must be run to verify constraints of the form
+  `!(var.a == "x" && var.b == null)`.
+
+**Workflow for modules with cross-variable constraints:**
+
+```bash
+# Step 1 — catches single-variable errors offline
+terraform init -backend=false && terraform validate
+
+# Step 2 — catches cross-variable errors (plan will fail at auth for offline runs,
+# but validation errors appear before provider calls and are visible in the output)
+terraform plan -no-color
+```
+
+**When writing negative test fixtures:** document the expected tool in the fixture
+header comment and ensure the test runner asserts on `terraform plan` exit code, not
+`terraform validate`, for cross-variable constraint violations.
+
 ---
 
 ## Code Style Guidelines
