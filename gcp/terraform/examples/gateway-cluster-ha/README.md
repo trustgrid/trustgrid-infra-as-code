@@ -87,7 +87,7 @@ terraform apply
 | `zone_a` | string | yes | no | Zone for node A (e.g. `us-central1-a`) |
 | `zone_b` | string | yes | no | Zone for node B (must differ from zone_a) |
 | `tg_license` | string | yes | **yes** | Trustgrid node license |
-| `tg_registration_key` | string | yes | **yes** | Cluster registration key |
+| `tg_registration_key` | string | yes | **yes** | Cluster registration key (must be non-empty; validated at `terraform validate` time) |
 | `management_vpc_network` | string | yes | no | Self-link or name of management VPC network |
 | `management_subnetwork` | string | yes | no | Self-link or name of management subnetwork |
 | `data_subnetwork` | string | yes | no | Self-link or name of data subnetwork |

@@ -44,6 +44,11 @@ variable "tg_registration_key" {
   type        = string
   description = "Trustgrid registration key that associates both nodes with the same gateway cluster. Supply via environment variable (TF_VAR_tg_registration_key). Required for HA cluster formation."
   sensitive   = true
+
+  validation {
+    condition     = length(trimspace(var.tg_registration_key)) > 0
+    error_message = "tg_registration_key must not be empty or whitespace-only. Obtain the cluster registration key from the Trustgrid portal and supply it via TF_VAR_tg_registration_key."
+  }
 }
 
 ## ─── Network (existing resources) ─────────────────────────────────────────────
