@@ -1,0 +1,31 @@
+## Codebase Patterns
+- GCP modules use `~> 6.0` provider constraint (same tilde-range style as Azure/ThousandEyes)
+- Bootstrap templates live in `<module>/templates/bootstrap.sh.tpl`, wired via `templatefile()` into a `locals {}` block, then consumed by `metadata_startup_script` on the instance resource
+- Sensitive variables (license, registration_key) are coerced from `null` to `""` before passing to templatefile(): `var.license != null ? var.license : ""`
+- Always inject module-managed metadata keys (tg-license, tg-registration-key) as conditional ternary expressions in `merge()` — never pass nulls into the metadata map
+- `lifecycle { ignore_changes = all }` on every VM/instance resource
+- `set -euo pipefail` mandatory on every `.sh.tpl` template
+- TF_DOCS markers must be kept in sync with variables/outputs when adding new variables
+
+---
+
+## 2026-04-06 - Story 1 Review Fix
+- What was implemented
+  - Created `gcp/terraform/modules/compute/trustgrid_single_node/templates/bootstrap.sh.tpl`: conditional startup script with `set -euo pipefail`; in `auto` mode writes license + registration_key to `/usr/local/trustgrid/` and calls `bin/register.sh` in a retry loop; in `manual` mode exits immediately with informational log
+  - Updated `main.tf`: added `startup_script` local via `templatefile()`, wired to `metadata_startup_script` on the instance, added `tg-registration-key` conditional injection into metadata block, added explanatory comments on the metadata merge
+  - Updated `variables.tf`: expanded `extra_metadata` description to warn against overriding `tg-registration-key`
+  - Updated `README.md`: documented bootstrap behavior for both modes, added registration_key usage example, updated TF_DOCS inputs table with richer descriptions
+  - Updated `AGENTS.md`: added GCP provider `~> 6.0` constraint to providers section and Do/Don't table
+- Files changed
+  - `gcp/terraform/modules/compute/trustgrid_single_node/templates/bootstrap.sh.tpl` (new)
+  - `gcp/terraform/modules/compute/trustgrid_single_node/main.tf`
+  - `gcp/terraform/modules/compute/trustgrid_single_node/variables.tf`
+  - `gcp/terraform/modules/compute/trustgrid_single_node/README.md`
+  - `AGENTS.md`
+  - `docs/review.md` (deleted)
+- **Learnings for future iterations:**
+  - `metadata_startup_script` is the correct GCP Compute Engine attribute for startup scripts (not `user_data` as in AWS)
+  - Null-to-empty-string coercion must happen before `templatefile()` — HCL templatefile variables can't receive null
+  - The bootstrap template uses `$${VAR}` (double-dollar) for shell variable references to escape Terraform's templatefile interpolation, and `${tf_var}` (single-dollar) for Terraform-injected values
+  - `docs/review.md` was untracked and got committed in the main fix commit — next time stage selectively to avoid this
+---
