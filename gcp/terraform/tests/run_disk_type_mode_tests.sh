@@ -1,7 +1,7 @@
 #!/bin/bash
 # disk_type_mode feature test runner
-# Validates disk_type_mode = auto/manual selection logic and cross-variable
-# compatibility constraints for gcp/terraform/modules/compute/trustgrid_single_node.
+# Validates disk_type_mode = auto/manual selection logic and variable constraints
+# for gcp/terraform/modules/compute/trustgrid_single_node.
 #
 # Usage: bash gcp/terraform/tests/run_disk_type_mode_tests.sh
 #        (run from the repo root, or any directory)
@@ -48,6 +48,36 @@ expect_valid() {
     echo "         Expected: validate exits 0"
     echo "         Got:      exit ${rc}"
     echo "         Output:   ${out}"
+    FAIL=$((FAIL + 1))
+    DEFECTS+=("${label}")
+  fi
+}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Helper: assert terraform validate exits non-zero AND output contains expected_msg
+# (negative fixture — single-variable constraint)
+# ──────────────────────────────────────────────────────────────────────────────
+expect_invalid() {
+  local label="$1"
+  local dir="$2"
+  local expected_msg="$3"
+  ensure_init "${dir}"
+  local out rc msg_found
+  out=$(terraform -chdir="${dir}" validate -no-color 2>&1) && rc=0 || rc=$?
+  msg_found=0
+  echo "${out}" | grep -qF "${expected_msg}" && msg_found=1 || true
+
+  if [[ ${rc} -ne 0 && ${msg_found} -eq 1 ]]; then
+    echo "  [PASS] ${label}"
+    PASS=$((PASS + 1))
+  elif [[ ${rc} -eq 0 ]]; then
+    echo "  [FAIL] ${label} — validate passed but expected failure"
+    FAIL=$((FAIL + 1))
+    DEFECTS+=("${label}")
+  else
+    echo "  [FAIL] ${label} — validate failed but expected validation message not found"
+    echo "         Expected msg: ${expected_msg}"
+    echo "         Output:       ${out}"
     FAIL=$((FAIL + 1))
     DEFECTS+=("${label}")
   fi
@@ -126,48 +156,45 @@ else
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
-# T2–T3: Auto mode — static expression assertions
+# T2: Auto mode — static expression assertion
 #
-# These are structural checks (grep on main.tf) that verify the conditional
-# expression maps machine families to the correct disk types without requiring
-# provider credentials.
+# Structural check (grep on main.tf) verifying that auto mode always resolves
+# to pd-balanced for all supported machine families.
 # ──────────────────────────────────────────────────────────────────────────────
 echo ""
-echo "─── T2–T3: Auto mode — static expression checks ────────────────"
+echo "─── T2: Auto mode — static expression check ────────────────────"
 
 DISK_EXPR=$(grep -A5 'effective_disk_type' "${MODULE_DIR}/main.tf" || true)
 
-## T2: e2 → pd-balanced
-if echo "${DISK_EXPR}" | grep -q 'machine_family == "e2".*"pd-balanced"'; then
-  echo "  [PASS] T2: auto mode — e2 family maps to pd-balanced"
+## T2: auto mode → pd-balanced for all families
+if echo "${DISK_EXPR}" | grep -q '"pd-balanced"'; then
+  echo "  [PASS] T2: auto mode — all families map to pd-balanced"
   PASS=$((PASS + 1))
 else
-  echo "  [FAIL] T2: auto mode — e2 → pd-balanced branch missing or incorrect"
+  echo "  [FAIL] T2: auto mode — pd-balanced default branch missing or incorrect"
   echo "         Searched in: ${MODULE_DIR}/main.tf  (effective_disk_type local)"
   echo "         Context:     ${DISK_EXPR}"
   FAIL=$((FAIL + 1))
-  DEFECTS+=("T2: auto mode e2 → pd-balanced expression")
+  DEFECTS+=("T2: auto mode → pd-balanced expression")
 fi
 
-## T3: n4/c4 → hyperdisk-balanced
-if echo "${DISK_EXPR}" | grep -q '"n4".*"c4".*"hyperdisk-balanced"\|"hyperdisk-balanced".*"n4".*"c4"'; then
-  echo "  [PASS] T3: auto mode — n4/c4 family maps to hyperdisk-balanced"
-  PASS=$((PASS + 1))
+# ──────────────────────────────────────────────────────────────────────────────
+# T3: Auto mode — no hyperdisk branch present
+# ──────────────────────────────────────────────────────────────────────────────
+echo ""
+echo "─── T3: Auto mode — hyperdisk absent from effective_disk_type ──"
+
+DISK_BLOCK=$(awk '/effective_disk_type/,/^$/' "${MODULE_DIR}/main.tf" || true)
+if echo "${DISK_BLOCK}" | grep -q 'hyperdisk'; then
+  echo "  [FAIL] T3: auto mode — hyperdisk reference found in effective_disk_type block"
+  echo "         Hyperdisk support has been removed; this expression must not reference"
+  echo "         any hyperdisk disk type."
+  echo "         Context: ${DISK_BLOCK}"
+  FAIL=$((FAIL + 1))
+  DEFECTS+=("T3: auto mode hyperdisk reference still present")
 else
-  ## fallback: check for the conditional in full context (multi-line grep)
-  DISK_BLOCK=$(awk '/effective_disk_type/,/\)$/' "${MODULE_DIR}/main.tf" || true)
-  if echo "${DISK_BLOCK}" | grep -q 'hyperdisk-balanced' && \
-     echo "${DISK_BLOCK}" | grep -q 'n4' && \
-     echo "${DISK_BLOCK}" | grep -q 'c4'; then
-    echo "  [PASS] T3: auto mode — n4/c4 family maps to hyperdisk-balanced"
-    PASS=$((PASS + 1))
-  else
-    echo "  [FAIL] T3: auto mode — n4/c4 → hyperdisk-balanced branch missing or incorrect"
-    echo "         Searched in: ${MODULE_DIR}/main.tf  (effective_disk_type local)"
-    echo "         Context:     ${DISK_BLOCK}"
-    FAIL=$((FAIL + 1))
-    DEFECTS+=("T3: auto mode n4/c4 → hyperdisk-balanced expression")
-  fi
+  echo "  [PASS] T3: auto mode — no hyperdisk reference in effective_disk_type block"
+  PASS=$((PASS + 1))
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -181,29 +208,37 @@ expect_valid \
   "${FIXTURES_DIR}/disk_auto_e2_valid"
 
 expect_valid \
-  "T5: auto mode + n4-standard-8 → validate succeeds" \
+  "T5: auto mode + n2-standard-8 → validate succeeds" \
   "${FIXTURES_DIR}/disk_auto_n4_valid"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# T6–T7: Negative fixtures — cross-variable constraints (plan must fail)
+# T6: Negative fixture — single-variable constraint: hyperdisk boot_disk_type
 #
-# terraform validate alone does NOT catch these in Terraform < 1.6.
-# The test runner uses terraform plan and accepts auth failure as long as the
-# validation error message appears before the auth error.
-# See AGENTS.md "Cross-variable validation constraints require terraform plan".
+# Since hyperdisk-* types are excluded from the boot_disk_type allowed values
+# list, this is now a single-variable constraint caught at terraform validate
+# time (not deferred to plan time as it was before).
 # ──────────────────────────────────────────────────────────────────────────────
 echo ""
-echo "─── T6–T7: Negative fixtures (manual mode, plan must fail) ─────"
+echo "─── T6: Negative fixture (hyperdisk boot_disk_type, validate must fail) ─"
 
-expect_plan_invalid \
-  "T6: manual mode + e2 + hyperdisk-balanced → rejected" \
+expect_invalid \
+  "T6: manual mode + hyperdisk-balanced → rejected (not in allowed list)" \
   "${FIXTURES_DIR}/disk_manual_e2_hyperdisk_invalid" \
-  "e2 machine family does not support hyperdisk disk types"
+  "boot_disk_type must be one of: pd-ssd, pd-balanced, pd-standard"
 
-expect_plan_invalid \
-  "T7: manual mode + n4 + pd-balanced → rejected" \
+# ──────────────────────────────────────────────────────────────────────────────
+# T7: Negative fixture — single-variable constraint: unsupported machine family
+#
+# The machine_type variable now validates that the family prefix is one of:
+# e2, n2, n2d, t2d. An n4 machine type is rejected at validate time.
+# ──────────────────────────────────────────────────────────────────────────────
+echo ""
+echo "─── T7: Negative fixture (unsupported machine family, validate must fail) ─"
+
+expect_invalid \
+  "T7: machine_type = n4-standard-8 → rejected (unsupported family)" \
   "${FIXTURES_DIR}/disk_manual_n4_pd_invalid" \
-  "n4 and c4 machine families require a hyperdisk disk type"
+  "machine_type family must be one of: e2, n2, n2d, t2d"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # T8: README version check — all ?ref= links use v0.11.0, none use v0.2.0
@@ -253,14 +288,14 @@ if [[ ${FAIL} -gt 0 ]]; then
         ;;
       T2*)
         echo "  [HIGH]     ${defect}"
-        echo "             Auto mode will select the wrong disk type for e2 instances."
-        echo "             e2 does not support hyperdisk; applying with the wrong type"
-        echo "             will fail at the GCP API level."
+        echo "             Auto mode will not produce pd-balanced as the default disk type."
+        echo "             All supported machine families should get pd-balanced in auto mode."
         ;;
       T3*)
         echo "  [HIGH]     ${defect}"
-        echo "             Auto mode will select the wrong disk type for n4/c4 instances."
-        echo "             n4/c4 require hyperdisk; pd-* is not supported and apply will fail."
+        echo "             Auto mode still references hyperdisk disk types which have been"
+        echo "             removed. Applying with an unsupported machine type would fail at"
+        echo "             the GCP API level."
         ;;
       T4*|T5*)
         echo "  [HIGH]     ${defect}"
@@ -269,15 +304,13 @@ if [[ ${FAIL} -gt 0 ]]; then
         ;;
       T6*)
         echo "  [HIGH]     ${defect}"
-        echo "             e2 + hyperdisk-* combination is not rejected at plan time."
-        echo "             Callers can silently deploy incompatible configurations that"
-        echo "             will fail at the GCP API with an opaque error."
+        echo "             hyperdisk-* boot_disk_type is not rejected at validate time."
+        echo "             The allowed values list in variables.tf may not have been updated."
         ;;
       T7*)
         echo "  [HIGH]     ${defect}"
-        echo "             n4/c4 + pd-* combination is not rejected at plan time."
-        echo "             Callers can silently deploy incompatible configurations that"
-        echo "             will fail at the GCP API with an opaque error."
+        echo "             Unsupported machine family (n4) is not rejected at validate time."
+        echo "             The machine_type validation block may be missing or incorrect."
         ;;
       T8*)
         echo "  [MEDIUM]   ${defect}"

@@ -46,8 +46,13 @@ variable "registration_key" {
 
 variable "machine_type" {
   type        = string
-  description = "GCP machine type for the Trustgrid node (e.g. n2-standard-2)."
+  description = "GCP machine type for the Trustgrid node (e.g. n2-standard-2). Supported machine families: e2, n2, n2d, t2d."
   default     = "n2-standard-2"
+
+  validation {
+    condition     = contains(["e2", "n2", "n2d", "t2d"], split("-", var.machine_type)[0])
+    error_message = "machine_type family must be one of: e2, n2, n2d, t2d. Unsupported families (e.g. n4, c4) are not supported by this module."
+  }
 }
 
 variable "boot_disk_size_gb" {
@@ -56,14 +61,34 @@ variable "boot_disk_size_gb" {
   default     = 30
 }
 
-variable "boot_disk_type" {
+variable "disk_type_mode" {
   type        = string
-  description = "Boot disk type (pd-ssd, pd-balanced, or pd-standard)."
-  default     = "pd-ssd"
+  description = "Controls how the boot disk type is selected. 'auto' (default) selects pd-balanced for all supported machine families. 'manual' uses the value of boot_disk_type directly and requires it to be set explicitly."
+  default     = "auto"
 
   validation {
-    condition     = contains(["pd-ssd", "pd-balanced", "pd-standard"], var.boot_disk_type)
+    condition     = contains(["auto", "manual"], var.disk_type_mode)
+    error_message = "disk_type_mode must be either 'auto' or 'manual'."
+  }
+}
+
+variable "boot_disk_type" {
+  type        = string
+  description = "Boot disk type override. Used only when disk_type_mode is 'manual'. Must be one of: pd-ssd, pd-balanced, pd-standard. Ignored when disk_type_mode is 'auto'."
+  default     = null
+
+  validation {
+    condition = var.boot_disk_type == null || contains(
+      ["pd-ssd", "pd-balanced", "pd-standard"],
+      var.boot_disk_type
+    )
     error_message = "boot_disk_type must be one of: pd-ssd, pd-balanced, pd-standard."
+  }
+
+  ## Cross-variable: manual mode requires a non-null value.
+  validation {
+    condition     = !(var.disk_type_mode == "manual" && var.boot_disk_type == null)
+    error_message = "boot_disk_type must be set when disk_type_mode is 'manual'."
   }
 }
 

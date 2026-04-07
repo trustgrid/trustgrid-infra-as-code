@@ -14,6 +14,7 @@ and three public-exposure modes for the management NIC.
 | Lifecycle | `ignore_changes = all` on the instance — prevents Terraform from replacing a running node due to post-boot drift. |
 | Bootstrap | A startup script (`templates/bootstrap.sh.tpl`) is rendered and attached as `metadata_startup_script`. In `auto` mode it writes the license/registration key and calls `bin/register.sh`. In `manual` mode it exits immediately. |
 | Public IP stability | In `direct_static_ip` mode the module creates a separate `google_compute_address` resource. Because this resource is independent of the instance, the external IP is **preserved** across `terraform taint`/replace or destroy+apply cycles — the node always re-attaches the same IP. |
+| Boot disk type | `disk_type_mode = "auto"` (default) selects `pd-balanced` for all supported machine families. Set `disk_type_mode = "manual"` and supply `boot_disk_type` to override. |
 
 ---
 
@@ -38,7 +39,7 @@ module.trustgrid_node.google_compute_instance.node` (or a full destroy+apply) wi
 
 ```hcl
 module "trustgrid_node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "my-tg-node"
   zone                  = "us-central1-a"
@@ -69,7 +70,7 @@ resource "google_compute_address" "node_ip" {
 }
 
 module "trustgrid_node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "my-tg-node"
   zone                  = "us-central1-a"
@@ -91,7 +92,7 @@ gateway, or a hub-and-spoke VPN. No external IP is attached to the management in
 
 ```hcl
 module "trustgrid_node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "my-tg-node"
   zone                  = "us-central1-a"
@@ -118,7 +119,7 @@ registration there by following the portal workflow.
 
 ```hcl
 module "trustgrid_node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "my-tg-node"
   zone                  = "us-central1-a"
@@ -140,7 +141,7 @@ Bootstrap progress is logged to `/var/log/tg-bootstrap.log`.
 
 ```hcl
 module "trustgrid_node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "my-tg-node"
   zone                  = "us-central1-a"
@@ -163,7 +164,7 @@ configuration profile at registration time. The key is written to
 
 ```hcl
 module "trustgrid_node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "my-tg-node"
   zone                  = "us-central1-a"
@@ -197,7 +198,7 @@ Pin `image_name` to a known-good release so that re-applying a configuration
 
 ```hcl
 module "trustgrid_node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "prod-tg-node"
   zone                  = "us-central1-a"
@@ -227,7 +228,7 @@ externally (e.g. via image promotion workflows).
 
 ```hcl
 module "trustgrid_node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "prod-tg-node"
   zone                  = "us-central1-a"
@@ -248,7 +249,7 @@ staging image project without changing any other module behaviour.
 
 ```hcl
 module "trustgrid_node_staging" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.2.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   name                  = "staging-tg-node"
   zone                  = "us-central1-a"
@@ -266,6 +267,98 @@ To pin a test variant to a specific image from a non-production project:
 
 ```hcl
   image_name = "projects/my-test-image-project/global/images/trustgrid-node-rc-20240201"
+```
+
+---
+
+## Boot disk type selection
+
+The module supports two modes controlled by `disk_type_mode`.
+
+### Supported machine families
+
+Only the following GCP machine families are supported by this module:
+
+| Machine family | Example type | Notes |
+|---|---|---|
+| `e2` | `e2-standard-4` | Cost-optimised; good for dev/test or light production workloads |
+| `n2` | `n2-standard-2` *(default)* | General-purpose; recommended for most production deployments |
+| `n2d` | `n2d-standard-4` | AMD-based general-purpose; similar capabilities to n2 |
+| `t2d` | `t2d-standard-4` | Scale-out optimised (AMD EPYC); good for throughput-heavy workloads |
+
+> **Note:** Machine families that require hyperdisk (e.g. n4, c4) are **not supported**.
+> Specifying an unsupported machine family causes `terraform validate` to fail with an
+> error listing the allowed families.
+
+### Auto mode (default)
+
+When `disk_type_mode = "auto"` (default) `pd-balanced` is used for all supported machine
+families. No additional input is needed.
+
+| Machine family | Effective disk type | Rationale |
+|---|---|---|
+| `e2*` | `pd-balanced` | Recommended default for cost-optimised workloads |
+| `n2*` | `pd-balanced` | Recommended default for general-purpose workloads |
+| `n2d*` | `pd-balanced` | Recommended default for AMD general-purpose workloads |
+| `t2d*` | `pd-balanced` | Recommended default for scale-out workloads |
+
+```hcl
+# e2 node — disk_type_mode = "auto" selects pd-balanced automatically
+module "trustgrid_node_e2" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+
+  name                  = "e2-tg-node"
+  zone                  = "us-central1-a"
+  machine_type          = "e2-standard-4"
+  management_subnetwork = "projects/my-project/regions/us-central1/subnetworks/mgmt-subnet"
+  data_subnetwork       = "projects/my-project/regions/us-central1/subnetworks/data-subnet"
+  service_account_email = module.trustgrid_sa.service_account_email
+
+  # disk_type_mode defaults to "auto" — pd-balanced is selected for e2
+}
+
+# n2 node — disk_type_mode = "auto" selects pd-balanced automatically
+module "trustgrid_node_n2" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+
+  name                  = "n2-tg-node"
+  zone                  = "us-central1-a"
+  machine_type          = "n2-standard-4"
+  management_subnetwork = "projects/my-project/regions/us-central1/subnetworks/mgmt-subnet"
+  data_subnetwork       = "projects/my-project/regions/us-central1/subnetworks/data-subnet"
+  service_account_email = module.trustgrid_sa.service_account_email
+
+  # disk_type_mode defaults to "auto" — pd-balanced is selected for n2
+}
+```
+
+### Manual mode
+
+Set `disk_type_mode = "manual"` and provide an explicit `boot_disk_type` to bypass the
+automatic selection logic. The allowed disk types are:
+
+- `pd-ssd` — higher IOPS/throughput persistent disk
+- `pd-balanced` — balanced performance/cost (also the auto-mode default)
+- `pd-standard` — lowest-cost persistent disk; suitable for dev/test
+
+> **Note:** `hyperdisk-*` types are **not supported** by this module. Specifying a
+> hyperdisk type causes `terraform validate` to fail.
+
+```hcl
+# Manual override — use pd-ssd on an n2 node
+module "trustgrid_node_manual" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+
+  name                  = "n2-tg-node"
+  zone                  = "us-central1-a"
+  machine_type          = "n2-standard-4"
+  management_subnetwork = "projects/my-project/regions/us-central1/subnetworks/mgmt-subnet"
+  data_subnetwork       = "projects/my-project/regions/us-central1/subnetworks/data-subnet"
+  service_account_email = module.trustgrid_sa.service_account_email
+
+  disk_type_mode = "manual"
+  boot_disk_type = "pd-ssd"
+}
 ```
 
 ---
@@ -294,12 +387,20 @@ terraform state show 'module.trustgrid_node.google_compute_address.management_ex
 
 ### Cross-variable constraints are enforced at plan-time
 
-This module contains two validation rules that reference more than one variable:
+This module contains validation rules that reference more than one variable:
 
 | Rule | Variables involved | Error message |
 |---|---|---|
 | `license` required in `auto` mode | `registration_mode`, `license` | "license is required when registration_mode is 'auto'." |
 | `management_external_ip_address` required in `byo_public_ip` mode | `public_exposure_mode`, `management_external_ip_address` | "management_external_ip_address is required when public_exposure_mode is 'byo_public_ip'." |
+| `boot_disk_type` required in `manual` mode | `disk_type_mode`, `boot_disk_type` | "boot_disk_type must be set when disk_type_mode is 'manual'." |
+
+The following constraints are **single-variable** and are enforced at `terraform validate` time:
+
+| Rule | Variable | Error message |
+|---|---|---|
+| `machine_type` family must be e2, n2, n2d, or t2d | `machine_type` | "machine_type family must be one of: e2, n2, n2d, t2d." |
+| `boot_disk_type` must be a pd-* type | `boot_disk_type` | "boot_disk_type must be one of: pd-ssd, pd-balanced, pd-standard." |
 
 **In Terraform < 1.6** validation blocks that reference a second variable are deferred to
 `terraform plan` time — `terraform validate` alone will not catch violations.
@@ -359,9 +460,10 @@ No modules.
 | <a name="input_registration_key"></a> [registration\_key](#input\_registration\_key) | Optional Trustgrid registration key for cluster/configuration association. Injected into instance metadata as `tg-registration-key` and written to disk by the bootstrap script when supplied. | `string` | `null` | no |
 | <a name="input_public_exposure_mode"></a> [public\_exposure\_mode](#input\_public\_exposure\_mode) | Controls how nic0 is exposed publicly. `direct_static_ip` (default) creates a module-owned static external IP for redeployment stability. `byo_public_ip` attaches a caller-supplied reserved external IP. `private_only` attaches no external IP. | `string` | `"direct_static_ip"` | no |
 | <a name="input_management_external_ip_address"></a> [management\_external\_ip\_address](#input\_management\_external\_ip\_address) | Reserved external IP address to attach to nic0. Required when `public_exposure_mode = "byo_public_ip"`. Must be a regional static external IP in the same region as the instance. | `string` | `null` | no |
-| <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | GCP machine type. | `string` | `"n2-standard-2"` | no |
+| <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | GCP machine type. Supported families: e2, n2, n2d, t2d (e.g. `n2-standard-2`). | `string` | `"n2-standard-2"` | no |
 | <a name="input_boot_disk_size_gb"></a> [boot\_disk\_size\_gb](#input\_boot\_disk\_size\_gb) | Boot disk size in GB (minimum 30). | `number` | `30` | no |
-| <a name="input_boot_disk_type"></a> [boot\_disk\_type](#input\_boot\_disk\_type) | Boot disk type: pd-ssd, pd-balanced, or pd-standard. | `string` | `"pd-ssd"` | no |
+| <a name="input_disk_type_mode"></a> [disk\_type\_mode](#input\_disk\_type\_mode) | Controls how the boot disk type is selected. `auto` (default) uses `pd-balanced` for all supported machine families. `manual` uses `boot_disk_type` directly and requires it to be set explicitly. | `string` | `"auto"` | no |
+| <a name="input_boot_disk_type"></a> [boot\_disk\_type](#input\_boot\_disk\_type) | Boot disk type override. Used only when `disk_type_mode = "manual"`. Must be one of: `pd-ssd`, `pd-balanced`, `pd-standard`. Hyperdisk types are not supported. Ignored in `auto` mode. | `string` | `null` | no |
 | <a name="input_enable_secure_boot"></a> [enable\_secure\_boot](#input\_enable\_secure\_boot) | Enable Shielded VM secure boot. | `bool` | `true` | no |
 | <a name="input_image_project"></a> [image\_project](#input\_image\_project) | GCP project owning the Trustgrid image. Used only when `image_name` is null. Defaults to the Trustgrid production project (`trustgrid-images`). Override for test variants hosted in a separate project. | `string` | `"trustgrid-images"` | no |
 | <a name="input_image_family"></a> [image\_family](#input\_image\_family) | Image family for latest Trustgrid node image. Used only when `image_name` is null. Defaults to the Trustgrid production family (`trustgrid-node`). Override for test variants (e.g. `trustgrid-node-staging`). | `string` | `"trustgrid-node"` | no |

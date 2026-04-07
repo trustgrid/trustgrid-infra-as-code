@@ -48,6 +48,20 @@ locals {
     null
   )
 
+  ## Derive the machine family prefix from machine_type so that auto mode can
+  ## select an appropriate disk type without the caller specifying one.
+  ## Machine types follow the pattern "<family>-<series>-<size>" (e.g. e2-standard-4,
+  ## n2-standard-8). split("-")[0] reliably extracts the family.
+  machine_family = split("-", var.machine_type)[0]
+
+  ## Effective boot disk type.
+  ##
+  ## In 'auto' mode all supported machine families (e2, n2, n2d, t2d) use pd-balanced.
+  ## pd-balanced is the recommended default for all supported families.
+  ##
+  ## In 'manual' mode boot_disk_type is passed through unchanged.
+  effective_disk_type = var.disk_type_mode == "manual" ? var.boot_disk_type : "pd-balanced"
+
   ## Render the startup script for the chosen registration mode.
   ## In manual mode the script exits immediately; in auto mode it writes the
   ## license (and optional registration key) to disk and calls register.sh.
@@ -93,7 +107,7 @@ resource "google_compute_instance" "node" {
     initialize_params {
       image = local.boot_image
       size  = var.boot_disk_size_gb
-      type  = var.boot_disk_type
+      type  = local.effective_disk_type
     }
   }
 

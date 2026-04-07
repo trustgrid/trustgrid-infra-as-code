@@ -1,20 +1,18 @@
-## Fixture: disk_type_mode = "manual", n4 + pd-balanced (negative / must fail)
-## Acceptance criterion: manual mode with an n4 machine and a pd-* type must be
-##   rejected by validation.
+## Fixture: machine_type with unsupported family — n4 (negative / must fail)
+## Acceptance criterion: any machine_type whose family is not one of e2, n2, n2d, t2d
+##   must be rejected by the single-variable machine_type validation block.
 ##
 ## This fixture is intentionally invalid.  The expected validation error is:
-##   "n4 and c4 machine families require a hyperdisk disk type"
+##   "machine_type family must be one of: e2, n2, n2d, t2d"
 ##
-## IMPORTANT — Terraform CLI behavior (< 1.6):
-##   terraform validate  → exits 0 (PASSES).  Cross-variable validation blocks are NOT
-##                         evaluated at validate-time; they are deferred to plan-time.
-##   terraform plan      → exits 1 (FAILS) with the validation error above.
+## IMPORTANT — Terraform CLI behavior:
+##   terraform validate  → exits 1 (FAILS).  This is a single-variable constraint
+##                         evaluated at validate-time.
+##   No need for terraform plan for this particular negative test.
 ##
-## The test runner for this fixture must therefore use `terraform plan`, not
-## `terraform validate`, and assert that plan exits non-zero with the expected message.
-##
-## This is a known Terraform limitation — see AGENTS.md "Cross-variable validation" note
-## and the "Validation and testing notes" section of the module README for details.
+## NOTE: This fixture previously tested "n4 + pd-balanced in manual mode" which
+## relied on the now-removed n4/c4 cross-variable hyperdisk constraint. n4 is now
+## entirely rejected at the machine_type variable validation stage.
 
 terraform {
   required_providers {
@@ -33,15 +31,13 @@ provider "google" {
 module "trustgrid_node" {
   source = "../../../modules/compute/trustgrid_single_node"
 
-  name                  = "n4-tg-node-pd"
+  name                  = "n4-tg-node-invalid-family"
   zone                  = "us-central1-a"
   machine_type          = "n4-standard-8"
   management_subnetwork = "projects/test-project/regions/us-central1/subnetworks/mgmt"
   data_subnetwork       = "projects/test-project/regions/us-central1/subnetworks/data"
   service_account_email = "tg-sa@test-project.iam.gserviceaccount.com"
 
-  ## Intentionally invalid: n4 requires hyperdisk; pd-balanced is incompatible.
-  ## Expected: plan emits "n4 and c4 machine families require a hyperdisk disk type"
-  disk_type_mode = "manual"
-  boot_disk_type = "pd-balanced"
+  ## Intentionally invalid: n4 is not a supported machine family.
+  ## Expected: validate emits "machine_type family must be one of: e2, n2, n2d, t2d"
 }
