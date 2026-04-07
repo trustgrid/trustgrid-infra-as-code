@@ -15,6 +15,7 @@ and three public-exposure modes for the management NIC.
 | Bootstrap | A startup script (`templates/bootstrap.sh.tpl`) is rendered and attached as `metadata_startup_script`. In `auto` mode it writes the license/registration key and calls `bin/register.sh`. In `manual` mode it exits immediately. |
 | Public IP stability | In `direct_static_ip` mode the module creates a separate `google_compute_address` resource. Because this resource is independent of the instance, the external IP is **preserved** across `terraform taint`/replace or destroy+apply cycles — the node always re-attaches the same IP. |
 | Boot disk type | `disk_type_mode = "auto"` (default) selects `pd-balanced` for all supported machine families. Set `disk_type_mode = "manual"` and supply `boot_disk_type` to override. |
+| Serial console | **Should remain enabled in almost all cases.** Enabled by default (`serial_port_enable = true`). The serial console is required to complete manual node registration via the Trustgrid portal workflow and is the primary access path for critical troubleshooting when network connectivity is unavailable. Disabling it is not recommended — doing so will prevent manual registration and may make an unresponsive node unrecoverable without redeploying. The module always controls the `serial-port-enable` metadata key; it cannot be overridden via `extra_metadata`. |
 
 ---
 
@@ -469,7 +470,8 @@ No modules.
 | <a name="input_image_family"></a> [image\_family](#input\_image\_family) | Image family for latest Trustgrid node image. Used only when `image_name` is null. Defaults to the Trustgrid production family (`trustgrid-node`). Override for test variants (e.g. `trustgrid-node-staging`). | `string` | `"trustgrid-node"` | no |
 | <a name="input_image_name"></a> [image\_name](#input\_image\_name) | Explicit image name or self\_link to pin the instance to a specific image version. When set, `image_project` and `image_family` are ignored. Recommended for production to prevent unintended image upgrades on re-apply. | `string` | `null` | no |
 | <a name="input_network_tags"></a> [network\_tags](#input\_network\_tags) | Network tags for targeting VPC firewall rules. | `list(string)` | `[]` | no |
-| <a name="input_extra_metadata"></a> [extra\_metadata](#input\_extra\_metadata) | Additional instance metadata key/value pairs. Do not include `tg-license` or `tg-registration-key`; use the `license` and `registration_key` variables instead. | `map(string)` | `{}` | no |
+| <a name="input_serial_port_enable"></a> [serial\_port\_enable](#input\_serial\_port\_enable) | Enable the interactive serial console. **Defaults to `true` and should remain enabled in almost all cases.** The serial console is required to complete manual registration via the Trustgrid portal workflow and is the primary access path for critical troubleshooting when network connectivity is unavailable. Disabling it is not recommended — doing so will prevent manual registration and may make an unresponsive node unrecoverable without redeploying. When `true`, the GCP metadata key `serial-port-enable` is set to `"1"`, enabling access via the Cloud Console or `gcloud`. The module always controls this key; it cannot be overridden via `extra_metadata`. | `bool` | `true` | no |
+| <a name="input_extra_metadata"></a> [extra\_metadata](#input\_extra\_metadata) | Additional instance metadata key/value pairs. Do not include `tg-license`, `tg-registration-key`, or `serial-port-enable`; use the dedicated module variables instead. | `map(string)` | `{}` | no |
 
 ## Outputs
 

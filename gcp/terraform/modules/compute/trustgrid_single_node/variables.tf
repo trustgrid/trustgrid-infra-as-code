@@ -194,8 +194,14 @@ variable "service_account_email" {
 
 ## ─── Miscellaneous ─────────────────────────────────────────────────────────────
 
+variable "serial_port_enable" {
+  type        = bool
+  description = "Enable the interactive serial console on the instance. Defaults to true and should remain enabled in almost all cases. The serial console is required to complete manual registration via the Trustgrid portal workflow and is the primary access path for critical troubleshooting when network connectivity is unavailable. Disabling it is not recommended — doing so will prevent manual registration and may make an unresponsive node unrecoverable without redeploying. When true, the GCP metadata key 'serial-port-enable' is set to '1', enabling access via the GCP Cloud Console or gcloud CLI. The module always controls this key; it cannot be overridden via extra_metadata."
+  default     = true
+}
+
 variable "extra_metadata" {
   type        = map(string)
-  description = "Additional instance metadata key/value pairs to merge with the module-managed metadata. Do not include tg-license or tg-registration-key here; use the license and registration_key variables instead."
+  description = "Additional instance metadata key/value pairs to merge with the module-managed metadata. Do not include tg-license, tg-registration-key, or serial-port-enable here; use the dedicated module variables instead."
   default     = {}
 }
