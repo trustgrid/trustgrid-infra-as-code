@@ -134,10 +134,13 @@ Each node's `google_compute_address` resource is owned by the compute module ind
 
 ## Module source references
 
-The `source` references in `main.tf` use relative paths (`../../modules/…`) so that this example works directly from the repository without requiring a tagged release. When deploying from outside this repository, replace the relative paths with pinned GitHub sources, for example:
+All module `source` references in `main.tf` are pinned to the `v0.11.0` release tag:
 
 ```hcl
-source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=vX.Y.Z"
+source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 ```
 
-Check the [trustgrid-infra-as-code releases](https://github.com/trustgrid/trustgrid-infra-as-code/releases) for the latest stable tag and pin to it. Never use `?ref=main` in production.
+To upgrade to a newer release, replace `v0.11.0` with the desired tag from the
+[trustgrid-infra-as-code releases](https://github.com/trustgrid/trustgrid-infra-as-code/releases)
+page. Always pin to a semver tag — never use a branch name or `?ref=main` in
+production deployments.

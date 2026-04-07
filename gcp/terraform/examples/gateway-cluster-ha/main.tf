@@ -40,7 +40,7 @@ provider "google" {
 ## single binding grants both nodes the route-manager role.
 
 module "node_a_sa" {
-  source = "../../modules/iam/trustgrid_node_service_account"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.11.0"
 
   account_id   = "${var.cluster_name}-gw-a-sa"
   display_name = "Trustgrid Gateway SA — ${var.cluster_name}-gw-a"
@@ -48,7 +48,7 @@ module "node_a_sa" {
 }
 
 module "node_b_sa" {
-  source = "../../modules/iam/trustgrid_node_service_account"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.11.0"
 
   account_id   = "${var.cluster_name}-gw-b-sa"
   display_name = "Trustgrid Gateway SA — ${var.cluster_name}-gw-b"
@@ -70,7 +70,7 @@ module "node_b_sa" {
 ## guidance on switching to non-authoritative (additive) bindings.
 
 module "cluster_route_role" {
-  source = "../../modules/iam/trustgrid_cluster_route_role"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_cluster_route_role?ref=v0.11.0"
 
   project = var.project
 
@@ -93,7 +93,7 @@ module "cluster_route_role" {
 ## target the shared network tag.
 
 module "mgmt_firewall" {
-  source = "../../modules/network/trustgrid_mgmt_firewall"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_mgmt_firewall?ref=v0.11.0"
 
   name_prefix = var.cluster_name
   network     = var.management_vpc_network
@@ -101,7 +101,7 @@ module "mgmt_firewall" {
 }
 
 module "gateway_firewall" {
-  source = "../../modules/network/trustgrid_gateway_firewall"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_gateway_firewall?ref=v0.11.0"
 
   name_prefix = var.cluster_name
   network     = var.management_vpc_network
@@ -119,7 +119,7 @@ module "gateway_firewall" {
 ## stable, independent public IPs so edge nodes can reach either gateway.
 
 module "gateway_node_a" {
-  source = "../../modules/compute/trustgrid_single_node"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   ## Identity
   name = "${var.cluster_name}-gw-a"
@@ -150,7 +150,7 @@ module "gateway_node_a" {
 ## Edge nodes can be configured to connect to either gateway IP.
 
 module "gateway_node_b" {
-  source = "../../modules/compute/trustgrid_single_node"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
 
   ## Identity
   name = "${var.cluster_name}-gw-b"
