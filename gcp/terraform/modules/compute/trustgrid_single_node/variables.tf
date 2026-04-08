@@ -205,3 +205,26 @@ variable "extra_metadata" {
   description = "Additional instance metadata key/value pairs to merge with the module-managed metadata. Do not include tg-license, tg-registration-key, or serial-port-enable here; use the dedicated module variables instead."
   default     = {}
 }
+
+## ─── Scheduling ────────────────────────────────────────────────────────────────
+##
+## Spot (preemptible) VM support — for non-production / cost-sensitive workloads
+## only. Spot VMs can be preempted by GCP at any time with a short notice window.
+## Production deployments MUST use the default (enable_spot = false).
+
+variable "enable_spot" {
+  type        = bool
+  description = "Enable Spot (preemptible) VM provisioning. When true the instance is created with provisioning_model = SPOT, preemptible = true, and automatic_restart = false, reducing cost at the expense of availability — GCP may terminate the instance at any time with short notice. **Intended for dev/test and cost-sensitive workloads only. Do not use in production.** Production deployments must use the default (false)."
+  default     = false
+}
+
+variable "spot_instance_termination_action" {
+  type        = string
+  description = "Action GCP takes when a Spot VM is preempted. Used only when enable_spot = true. Accepted values: STOP (default — instance transitions to TERMINATED state, preserving disk and allowing manual restart) or DELETE (instance and disk are deleted immediately on preemption). STOP is the safer default for most workloads."
+  default     = "STOP"
+
+  validation {
+    condition     = contains(["STOP", "DELETE"], var.spot_instance_termination_action)
+    error_message = "spot_instance_termination_action must be one of: STOP, DELETE."
+  }
+}

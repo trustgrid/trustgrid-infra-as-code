@@ -117,6 +117,8 @@ resource "google_compute_instance" "node" {
   }
 
   metadata = merge(
+    # Caller-supplied metadata is merged first so that all module-owned keys
+    # below take precedence and cannot be overridden by extra_metadata.
     var.extra_metadata,
     # tg-license is read by the bootstrap script in auto-registration mode; the
     # script retrieves it from the instance metadata API so that the value never
@@ -126,6 +128,10 @@ resource "google_compute_instance" "node" {
     # the bootstrap script when supplied; injected regardless of mode so the
     # script can discover it via the metadata API.
     var.registration_key != null ? { "tg-registration-key" = var.registration_key } : {},
+    # serial-port-enable controls access to the interactive serial console.
+    # The module always owns this key; it is placed last so extra_metadata
+    # cannot override it even if a caller mistakenly includes the key there.
+    { "serial-port-enable" = var.serial_port_enable ? "1" : "0" },
   )
 
   ## metadata_startup_script is executed by the GCP guest agent on first boot
@@ -137,6 +143,22 @@ resource "google_compute_instance" "node" {
     enable_secure_boot          = var.enable_secure_boot
     enable_vtpm                 = true
     enable_integrity_monitoring = true
+  }
+
+  ## Scheduling / preemptibility.
+  ## Standard (enable_spot = false): no scheduling block — GCP defaults apply
+  ## (on_host_maintenance = MIGRATE, automatic_restart = true, preemptible = false).
+  ## Spot (enable_spot = true): provisioning_model SPOT with automatic_restart
+  ## disabled and on_host_maintenance TERMINATE as required by the GCP API.
+  dynamic "scheduling" {
+    for_each = var.enable_spot ? [1] : []
+    content {
+      provisioning_model          = "SPOT"
+      preemptible                 = true
+      automatic_restart           = false
+      on_host_maintenance         = "TERMINATE"
+      instance_termination_action = var.spot_instance_termination_action
+    }
   }
 
   lifecycle {

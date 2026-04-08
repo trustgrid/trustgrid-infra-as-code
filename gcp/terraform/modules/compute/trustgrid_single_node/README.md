@@ -16,6 +16,7 @@ and three public-exposure modes for the management NIC.
 | Public IP stability | In `direct_static_ip` mode the module creates a separate `google_compute_address` resource. Because this resource is independent of the instance, the external IP is **preserved** across `terraform taint`/replace or destroy+apply cycles — the node always re-attaches the same IP. |
 | Boot disk type | `disk_type_mode = "auto"` (default) selects `pd-balanced` for all supported machine families. Set `disk_type_mode = "manual"` and supply `boot_disk_type` to override. |
 | Serial console | **Should remain enabled in almost all cases.** Enabled by default (`serial_port_enable = true`). The serial console is required to complete manual node registration via the Trustgrid portal workflow and is the primary access path for critical troubleshooting when network connectivity is unavailable. Disabling it is not recommended — doing so will prevent manual registration and may make an unresponsive node unrecoverable without redeploying. The module always controls the `serial-port-enable` metadata key; it cannot be overridden via `extra_metadata`. |
+| Spot / preemptible | **Off by default (`enable_spot = false`). Not for production.** Set `enable_spot = true` only for dev/test and cost-sensitive workloads. GCP may terminate Spot VMs at any time with short notice. |
 
 ---
 
@@ -384,6 +385,86 @@ terraform state show 'module.trustgrid_node.google_compute_address.management_ex
 
 ---
 
+## Spot / preemptible instances
+
+> ⚠️ **Not for production.** Spot VMs can be preempted by GCP at any time with
+> short notice. Use Spot only for dev/test, CI, or cost-optimised batch workloads
+> where interruptions are acceptable. **Leave `enable_spot = false` (the default)
+> for all production deployments.**
+
+### How it works
+
+When `enable_spot = true` the module adds a `scheduling` block to the instance
+resource that sets:
+
+| Field | Value |
+|---|---|
+| `provisioning_model` | `SPOT` |
+| `preemptible` | `true` |
+| `automatic_restart` | `false` |
+| `on_host_maintenance` | `TERMINATE` (required by GCP for Spot) |
+| `instance_termination_action` | value of `spot_instance_termination_action` (default `STOP`) |
+
+When `enable_spot = false` (default) no `scheduling` block is emitted and GCP
+defaults apply: `on_host_maintenance = MIGRATE`, `automatic_restart = true`,
+`preemptible = false`.
+
+### Termination action
+
+The `spot_instance_termination_action` variable controls what GCP does when it
+preempts the instance:
+
+| Value | Behaviour | Use when |
+|---|---|---|
+| `STOP` *(default)* | Instance transitions to TERMINATED state; disk is preserved; instance can be manually restarted | You want to recover data or inspect the instance after preemption |
+| `DELETE` | Instance and boot disk are immediately deleted | Fully ephemeral workloads; reduces storage cost |
+
+### Example: Spot VM for dev/test
+
+```hcl
+# ⚠️  Spot VM — do NOT use in production. Instance may be preempted at any time.
+module "trustgrid_node_spot" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.12.0"
+
+  name                  = "dev-tg-node"
+  zone                  = "us-central1-a"
+  management_subnetwork = "projects/my-project/regions/us-central1/subnetworks/mgmt-subnet"
+  data_subnetwork       = "projects/my-project/regions/us-central1/subnetworks/data-subnet"
+  service_account_email = module.trustgrid_sa.email
+
+  # Enable Spot pricing — for dev/test only.
+  enable_spot = true
+
+  # STOP (default): disk is preserved after preemption so you can inspect state.
+  # Change to "DELETE" for fully ephemeral workloads.
+  spot_instance_termination_action = "STOP"
+
+  network_tags = ["trustgrid-mgmt", "trustgrid-data"]
+}
+```
+
+### Example: Spot VM with DELETE on preemption (fully ephemeral)
+
+```hcl
+# ⚠️  Spot VM — do NOT use in production.
+module "trustgrid_node_spot_ephemeral" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.12.0"
+
+  name                  = "ci-tg-node"
+  zone                  = "us-central1-a"
+  management_subnetwork = "projects/my-project/regions/us-central1/subnetworks/mgmt-subnet"
+  data_subnetwork       = "projects/my-project/regions/us-central1/subnetworks/data-subnet"
+  service_account_email = module.trustgrid_sa.email
+
+  enable_spot                      = true
+  spot_instance_termination_action = "DELETE"
+
+  network_tags = ["trustgrid-mgmt"]
+}
+```
+
+---
+
 ## Validation and testing notes
 
 ### Cross-variable constraints are enforced at plan-time
@@ -402,6 +483,7 @@ The following constraints are **single-variable** and are enforced at `terraform
 |---|---|---|
 | `machine_type` family must be e2, n2, n2d, or t2d | `machine_type` | "machine_type family must be one of: e2, n2, n2d, t2d." |
 | `boot_disk_type` must be a pd-* type | `boot_disk_type` | "boot_disk_type must be one of: pd-ssd, pd-balanced, pd-standard." |
+| `spot_instance_termination_action` must be STOP or DELETE | `spot_instance_termination_action` | "spot_instance_termination_action must be one of: STOP, DELETE." |
 
 **In Terraform < 1.6** validation blocks that reference a second variable are deferred to
 `terraform plan` time — `terraform validate` alone will not catch violations.
@@ -472,6 +554,8 @@ No modules.
 | <a name="input_network_tags"></a> [network\_tags](#input\_network\_tags) | Network tags for targeting VPC firewall rules. | `list(string)` | `[]` | no |
 | <a name="input_serial_port_enable"></a> [serial\_port\_enable](#input\_serial\_port\_enable) | Enable the interactive serial console. **Defaults to `true` and should remain enabled in almost all cases.** The serial console is required to complete manual registration via the Trustgrid portal workflow and is the primary access path for critical troubleshooting when network connectivity is unavailable. Disabling it is not recommended — doing so will prevent manual registration and may make an unresponsive node unrecoverable without redeploying. When `true`, the GCP metadata key `serial-port-enable` is set to `"1"`, enabling access via the Cloud Console or `gcloud`. The module always controls this key; it cannot be overridden via `extra_metadata`. | `bool` | `true` | no |
 | <a name="input_extra_metadata"></a> [extra\_metadata](#input\_extra\_metadata) | Additional instance metadata key/value pairs. Do not include `tg-license`, `tg-registration-key`, or `serial-port-enable`; use the dedicated module variables instead. | `map(string)` | `{}` | no |
+| <a name="input_enable_spot"></a> [enable\_spot](#input\_enable\_spot) | Enable Spot (preemptible) VM provisioning. When `true` the instance is created with `provisioning_model = SPOT`, `preemptible = true`, and `automatic_restart = false`. GCP may terminate the instance at any time with short notice. **For dev/test and cost-sensitive workloads only — do not use in production.** Production deployments must use the default (`false`). | `bool` | `false` | no |
+| <a name="input_spot_instance_termination_action"></a> [spot\_instance\_termination\_action](#input\_spot\_instance\_termination\_action) | Action GCP takes when a Spot VM is preempted. Used only when `enable_spot = true`. `STOP` (default) transitions the instance to TERMINATED state while preserving the disk; `DELETE` immediately removes the instance and disk. | `string` | `"STOP"` | no |
 
 ## Outputs
 
