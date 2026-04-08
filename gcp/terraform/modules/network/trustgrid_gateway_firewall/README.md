@@ -18,7 +18,7 @@ network tags.
 
 | Rule name | Direction | Protocol | Default port | Default source | Purpose |
 |---|---|---|---|---|---|
-| `<prefix>-gw-ingress` | INGRESS | TCP + UDP | 8443 | `0.0.0.0/0`, `::/0` | Accept tunnel connections from edge nodes |
+| `<prefix>-gw-ingress` | INGRESS | TCP + UDP | 8443 | `0.0.0.0/0` | Accept tunnel connections from edge nodes |
 
 ---
 
@@ -27,7 +27,7 @@ network tags.
 | Setting | Recommendation |
 |---|---|
 | `target_tags` | **Always set in production.** Apply the same network tag(s) used on Trustgrid gateway node instances (e.g. `["trustgrid-mgmt"]`). |
-| `source_ranges` | Default is `["0.0.0.0/0", "::/0"]` because edge node public IPs are typically dynamic. If all edge nodes have known static IPs, restrict `source_ranges` to those CIDRs for a tighter posture. |
+| `source_ranges` | Default is `["0.0.0.0/0"]` because edge node public IPs are typically dynamic. If all edge nodes have known static IPs, restrict `source_ranges` to those CIDRs for a tighter posture. |
 | `gateway_port` | Keep at `8443` (the Trustgrid default) unless your gateway is explicitly configured to listen on a different port. |
 | `enable_logging` | Enable in regulated/audit environments; leave off in cost-sensitive deployments. |
 
@@ -126,7 +126,7 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_name_prefix"></a> [name\_prefix](#input\_name\_prefix) | Prefix applied to the firewall rule name. | `string` | n/a | yes |
 | <a name="input_network"></a> [network](#input\_network) | Self-link or name of the management (WAN) VPC network. | `string` | n/a | yes |
-| <a name="input_source_ranges"></a> [source\_ranges](#input\_source\_ranges) | Source CIDR ranges allowed to reach the gateway. Default is unrestricted (0.0.0.0/0 and ::/0). | `list(string)` | `["0.0.0.0/0", "::/0"]` | no |
+| <a name="input_source_ranges"></a> [source\_ranges](#input\_source\_ranges) | Source IPv4 CIDR ranges allowed to reach the gateway. Default is unrestricted (0.0.0.0/0). | `list(string)` | `["0.0.0.0/0"]` | no |
 | <a name="input_gateway_port"></a> [gateway\_port](#input\_gateway\_port) | TCP/UDP port the gateway node listens on for tunnel traffic. Trustgrid default is 8443. | `number` | `8443` | no |
 | <a name="input_target_tags"></a> [target\_tags](#input\_target\_tags) | Network tags scoping the rule to specific instances. Recommended in production. | `list(string)` | `[]` | no |
 | <a name="input_priority"></a> [priority](#input\_priority) | GCP firewall rule priority (lower wins). | `number` | `1000` | no |

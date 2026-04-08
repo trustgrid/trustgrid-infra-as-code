@@ -14,8 +14,8 @@ variable "network" {
 
 variable "source_ranges" {
   type        = list(string)
-  description = "Source CIDR ranges allowed to reach the gateway on the gateway_port. Defaults to unrestricted (0.0.0.0/0 and ::/0) because edge node public IPs are typically dynamic. Restrict to known edge node CIDRs when possible for a tighter least-privilege posture."
-  default     = ["0.0.0.0/0", "::/0"]
+  description = "Source IPv4 CIDR ranges allowed to reach the gateway on the gateway_port. Defaults to unrestricted (0.0.0.0/0) because edge node public IPs are typically dynamic. Restrict to known edge node CIDRs when possible for a tighter least-privilege posture."
+  default     = ["0.0.0.0/0"]
 }
 
 variable "gateway_port" {

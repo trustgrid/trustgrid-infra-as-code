@@ -18,7 +18,7 @@ terraform {
 ##  will act as a gateway. Edge nodes do not require any inbound Management
 ##  firewall rules."
 ##
-## By default, ingress is allowed from any source (0.0.0.0/0 and ::/0). For
+## By default, ingress is allowed from any IPv4 source (0.0.0.0/0). For
 ## deployments where the set of peer edge node IPs is known and static, restrict
 ## source_ranges to those CIDRs to achieve a tighter least-privilege posture.
 

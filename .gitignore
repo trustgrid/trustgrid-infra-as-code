@@ -43,3 +43,6 @@ terraform.rc
 
 # Ignore .vscode directory
 .vscode
+
+# Agent-generated review artifacts
+docs/review.md
