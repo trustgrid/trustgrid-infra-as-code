@@ -113,7 +113,8 @@ of a single large `main.tf`.
 ### Providers and version constraints
 
 - Declare all providers in a `terraform { required_providers {} }` block in `main.tf`.
-- Use `~>` for Azure/ThousandEyes/GCP modules: `version = "~> 4.15.0"` (Azure), `version = "~> 6.0"` (GCP)
+- Use `~>` for Azure/ThousandEyes modules: `version = "~> 4.15.0"` (Azure)
+- Use `>=` for GCP modules: `version = ">= 6.0"` (Google) — allows 6.x and 7.x+ without an artificial upper bound
 - Use `>=` for AWS modules: `version = ">= 2.7.0"`
 - Never place `provider` blocks inside reusable modules — only in examples.
 
@@ -171,7 +172,7 @@ Every shell script and `*.sh.tpl` template must open with `#!/bin/bash` followed
 | Pin module `source` refs to a semver tag | Use `?ref=main` or a branch name |
 | Add `validation` blocks to constrained variables | Accept any string where only a few values are valid |
 | Add `description` to every variable and output | Leave `description` empty or omit it |
-| Use `~>` for Azure/GCP providers, `>=` for AWS | Mix constraint styles randomly |
+| Use `~>` for Azure providers, `>=` for GCP and AWS | Mix constraint styles randomly |
 | Keep `provider` blocks out of reusable modules | Declare providers inside a module |
 | Start every bootstrap script with `set -euo pipefail` | Write scripts that silently swallow errors |
 | Regenerate `<!-- BEGIN_TF_DOCS -->` via `terraform-docs` | Hand-edit the generated table |
