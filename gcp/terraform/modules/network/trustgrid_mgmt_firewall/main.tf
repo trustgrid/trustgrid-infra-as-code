@@ -78,7 +78,7 @@ resource "google_compute_firewall" "dns_egress" {
 
 ## ─── GCP metadata server egress ────────────────────────────────────────────────
 ##
-## The Trustgrid bootstrap script and the node agent read instance metadata
+## The Trustgrid node agent reads instance metadata
 ## (license key, registration key, zone, etc.) from the link-local metadata
 ## server at 169.254.169.254. This egress rule is required for both auto and
 ## manual registration modes.

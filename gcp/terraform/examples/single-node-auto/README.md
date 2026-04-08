@@ -2,7 +2,7 @@
 
 Deploys a single Trustgrid edge node in **automatic registration** mode on GCP.
 
-The node bootstraps itself on first boot: the startup script reads the license from instance metadata, writes it to disk with locked-down permissions, and calls the Trustgrid registration script in a retry loop. No portal interaction is required to register the node.
+The license key is passed as instance metadata (`tg-license-key`). On first boot, the Trustgrid image's built-in agent detects this key, registers the node with the control plane, and reboots automatically. No portal interaction is required.
 
 ## Architecture
 
@@ -70,7 +70,7 @@ terraform plan
 terraform apply
 ```
 
-The node will appear in the Trustgrid portal as **Online** once the startup script completes (typically within 2–3 minutes of first boot).
+The node will appear in the Trustgrid portal as **Online** once the built-in registration agent completes and the node reboots (typically within 2–3 minutes of first boot).
 
 ## Variables
 
@@ -97,17 +97,17 @@ The node will appear in the Trustgrid portal as **Online** once the startup scri
 | `node_self_link` | Instance self-link |
 | `service_account_email` | Service account email attached to the instance |
 
-## Auto-registration bootstrap sequence
+## Auto-registration sequence
 
-1. GCP guest agent runs `metadata_startup_script` on first boot.
-2. Script reads `tg-license` (and optionally `tg-registration-key`) from the instance metadata API.
-3. License is written to `/usr/local/trustgrid/license` with `chmod 600`.
-4. `bin/register.sh` is called in a loop with exponential back-off until the node registers successfully.
+1. Module sets `tg-license-key` (and optionally `tg-registration-key`) in instance metadata.
+2. On first boot, the Trustgrid image's built-in agent detects `tg-license-key` in the instance metadata API.
+3. The agent registers the node with the Trustgrid control plane.
+4. The agent reboots the VM to activate the new identity.
 5. Node appears as **Online** in the Trustgrid portal.
 
 ## IP stability on redeploy
 
-The module creates a `google_compute_address` resource that is independent of the instance. Replacing the instance (e.g. via `terraform taint` or a full `destroy + apply`) preserves the same external IP. The license and registration_key are passed to the new instance via metadata, so the node re-registers automatically.
+The module creates a `google_compute_address` resource that is independent of the instance. Replacing the instance (e.g. via `terraform taint` or a full `destroy + apply`) preserves the same external IP. The license key and registration key are passed to the new instance via metadata, so the node re-registers automatically.
 
 ## Module source references
 

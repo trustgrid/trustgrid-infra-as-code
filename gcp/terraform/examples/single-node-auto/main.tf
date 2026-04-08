@@ -1,9 +1,9 @@
 ## ─── Provider ──────────────────────────────────────────────────────────────────
 ##
 ## This example deploys a single Trustgrid edge node in automatic registration
-## mode. On first boot the node writes the supplied license to disk and calls
-## the Trustgrid registration script automatically — no portal interaction is
-## required to register the node.
+## mode. The license key is passed as instance metadata (tg-license-key) and the
+## Trustgrid image's built-in agent handles registration and reboot on first
+## boot — no portal interaction is required.
 ##
 ## Sensitive inputs (license, registration_key) are declared as sensitive
 ## variables and should be supplied via a secrets manager, CI/CD environment
@@ -59,11 +59,10 @@ module "mgmt_firewall" {
 
 ## ─── Compute node (automatic registration) ─────────────────────────────────────
 ##
-## In auto mode the bootstrap script:
-##   1. Reads the license from instance metadata (tg-license key).
-##   2. Writes the license and optional registration_key to
-##      /usr/local/trustgrid/ with locked-down permissions.
-##   3. Calls bin/register.sh with automatic retry until the node registers.
+## In auto mode the module injects tg-license-key into instance metadata. The
+## Trustgrid image's built-in first-boot agent detects this key, registers the
+## node with the control plane, and reboots to connect. No custom startup script
+## is used.
 ##
 ## registration_key is optional. Supply it when the node should join a specific
 ## cluster or be placed into a pre-configured group in the Trustgrid portal.

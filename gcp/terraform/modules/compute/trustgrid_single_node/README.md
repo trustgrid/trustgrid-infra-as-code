@@ -12,7 +12,7 @@ and three public-exposure modes for the management NIC.
 | Service account | **Not created here.** Pass an existing service account email via `service_account_email` (or use the `trustgrid_service_account` helper module). |
 | IP forwarding | Always enabled (`can_ip_forward = true`) — required for Trustgrid data-plane routing. |
 | Lifecycle | `ignore_changes = all` on the instance — prevents Terraform from replacing a running node due to post-boot drift. |
-| Bootstrap | A startup script (`templates/bootstrap.sh.tpl`) is rendered and attached as `metadata_startup_script`. In `auto` mode it writes the license/registration key and calls `bin/register.sh`. In `manual` mode it exits immediately. |
+| Registration | In `auto` mode the module injects `tg-license-key` into instance metadata. The Trustgrid image's built-in first-boot agent detects this key, registers the node with the control plane, and reboots automatically. In `manual` mode no license metadata is set — the operator completes registration via the portal or serial console. No custom startup script is used. |
 | Public IP stability | In `direct_static_ip` mode the module creates a separate `google_compute_address` resource. Because this resource is independent of the instance, the external IP is **preserved** across `terraform taint`/replace or destroy+apply cycles — the node always re-attaches the same IP. |
 | Boot disk type | `disk_type_mode = "auto"` (default) selects `pd-balanced` for all supported machine families. Set `disk_type_mode = "manual"` and supply `boot_disk_type` to override. |
 | Serial console | **Should remain enabled in almost all cases.** Enabled by default (`serial_port_enable = true`). The serial console is required to complete manual node registration via the Trustgrid portal workflow and is the primary access path for critical troubleshooting when network connectivity is unavailable. Disabling it is not recommended — doing so will prevent manual registration and may make an unresponsive node unrecoverable without redeploying. The module always controls the `serial-port-enable` metadata key; it cannot be overridden via `extra_metadata`. |
@@ -114,10 +114,9 @@ module "trustgrid_node" {
 
 ### Manual registration (license omitted)
 
-After first boot the GCP guest agent runs the bootstrap script, which detects
-`registration_mode = "manual"` and exits immediately without writing any
-credentials. The node surfaces in the Trustgrid portal as **"pending"**. Complete
-registration there by following the portal workflow.
+When `registration_mode = "manual"` (the default) no license metadata is injected.
+The node boots normally and can be registered via the Trustgrid portal using the
+serial console. See [Remote Registration](https://docs.trustgrid.io/tutorials/local-console-utility/remote-registration/) for full instructions.
 
 ```hcl
 module "trustgrid_node" {
@@ -136,10 +135,10 @@ module "trustgrid_node" {
 
 ### Auto registration (license provided)
 
-On first boot the bootstrap script writes the license (read from instance
-metadata) to `/usr/local/trustgrid/license.txt`, then calls `bin/register.sh`
-in a retry loop until the node successfully joins the Trustgrid control plane.
-Bootstrap progress is logged to `/var/log/tg-bootstrap.log`.
+When `registration_mode = "auto"` the module sets `tg-license-key` in instance
+metadata. On first boot the Trustgrid image's built-in agent detects this key,
+registers the node with the control plane, and reboots automatically. The node
+appears as **Online** in the portal within a few minutes of first boot.
 
 ```hcl
 module "trustgrid_node" {
@@ -161,8 +160,8 @@ module "trustgrid_node" {
 ### Auto registration with a registration key
 
 Supply `registration_key` to associate the node with a specific cluster or
-configuration profile at registration time. The key is written to
-`/usr/local/trustgrid/registration-key.txt` with restricted permissions.
+configuration profile at registration time. The key is injected into instance
+metadata as `tg-registration-key`.
 
 ```hcl
 module "trustgrid_node" {
@@ -538,9 +537,9 @@ No modules.
 | <a name="input_management_subnetwork"></a> [management\_subnetwork](#input\_management\_subnetwork) | Subnetwork self-link for the management (WAN/nic0) interface. | `string` | n/a | yes |
 | <a name="input_data_subnetwork"></a> [data\_subnetwork](#input\_data\_subnetwork) | Subnetwork self-link for the data (LAN/nic1) interface. | `string` | n/a | yes |
 | <a name="input_service_account_email"></a> [service\_account\_email](#input\_service\_account\_email) | Email of the GCP service account to attach to the instance. | `string` | n/a | yes |
-| <a name="input_registration_mode"></a> [registration\_mode](#input\_registration\_mode) | `manual` or `auto`. In `auto` mode the bootstrap script writes the license and calls `bin/register.sh` on first boot. In `manual` mode the script exits immediately and the operator completes registration via the portal. | `string` | `"manual"` | no |
-| <a name="input_license"></a> [license](#input\_license) | Trustgrid license. Required when `registration_mode = "auto"`. Injected into instance metadata as `tg-license` and consumed by the bootstrap script. | `string` | `null` | no |
-| <a name="input_registration_key"></a> [registration\_key](#input\_registration\_key) | Optional Trustgrid registration key for cluster/configuration association. Injected into instance metadata as `tg-registration-key` and written to disk by the bootstrap script when supplied. | `string` | `null` | no |
+| <a name="input_registration_mode"></a> [registration\_mode](#input\_registration\_mode) | `manual` (default) — register via portal/serial console after boot. `auto` — license key is injected into instance metadata as `tg-license-key`; the Trustgrid image's built-in agent registers the node and reboots to connect. | `string` | `"manual"` | no |
+| <a name="input_license"></a> [license](#input\_license) | Trustgrid license key. Required when `registration_mode = "auto"`. Injected into instance metadata as `tg-license-key` for consumption by the Trustgrid image's built-in registration agent. | `string` | `null` | no |
+| <a name="input_registration_key"></a> [registration\_key](#input\_registration\_key) | Optional Trustgrid registration key for cluster/configuration association. Injected into instance metadata as `tg-registration-key`. | `string` | `null` | no |
 | <a name="input_public_exposure_mode"></a> [public\_exposure\_mode](#input\_public\_exposure\_mode) | Controls how nic0 is exposed publicly. `direct_static_ip` (default) creates a module-owned static external IP for redeployment stability. `byo_public_ip` attaches a caller-supplied reserved external IP. `private_only` attaches no external IP. | `string` | `"direct_static_ip"` | no |
 | <a name="input_management_external_ip_address"></a> [management\_external\_ip\_address](#input\_management\_external\_ip\_address) | Reserved external IP address to attach to nic0. Required when `public_exposure_mode = "byo_public_ip"`. Must be a regional static external IP in the same region as the instance. | `string` | `null` | no |
 | <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | GCP machine type. Supported families: e2, n2, n2d, t2d (e.g. `n2-standard-2`). | `string` | `"n2-standard-2"` | no |
@@ -553,7 +552,7 @@ No modules.
 | <a name="input_image_name"></a> [image\_name](#input\_image\_name) | Explicit image name or self\_link to pin the instance to a specific image version. When set, `image_project` and `image_family` are ignored. Recommended for production to prevent unintended image upgrades on re-apply. | `string` | `null` | no |
 | <a name="input_network_tags"></a> [network\_tags](#input\_network\_tags) | Network tags for targeting VPC firewall rules. | `list(string)` | `[]` | no |
 | <a name="input_serial_port_enable"></a> [serial\_port\_enable](#input\_serial\_port\_enable) | Enable the interactive serial console. **Defaults to `true` and should remain enabled in almost all cases.** The serial console is required to complete manual registration via the Trustgrid portal workflow and is the primary access path for critical troubleshooting when network connectivity is unavailable. Disabling it is not recommended — doing so will prevent manual registration and may make an unresponsive node unrecoverable without redeploying. When `true`, the GCP metadata key `serial-port-enable` is set to `"1"`, enabling access via the Cloud Console or `gcloud`. The module always controls this key; it cannot be overridden via `extra_metadata`. | `bool` | `true` | no |
-| <a name="input_extra_metadata"></a> [extra\_metadata](#input\_extra\_metadata) | Additional instance metadata key/value pairs. Do not include `tg-license`, `tg-registration-key`, or `serial-port-enable`; use the dedicated module variables instead. | `map(string)` | `{}` | no |
+| <a name="input_extra_metadata"></a> [extra\_metadata](#input\_extra\_metadata) | Additional instance metadata key/value pairs. Do not include `tg-license-key`, `tg-registration-key`, or `serial-port-enable`; use the dedicated module variables instead. | `map(string)` | `{}` | no |
 | <a name="input_enable_spot"></a> [enable\_spot](#input\_enable\_spot) | Enable Spot (preemptible) VM provisioning. When `true` the instance is created with `provisioning_model = SPOT`, `preemptible = true`, and `automatic_restart = false`. GCP may terminate the instance at any time with short notice. **For dev/test and cost-sensitive workloads only — do not use in production.** Production deployments must use the default (`false`). | `bool` | `false` | no |
 | <a name="input_spot_instance_termination_action"></a> [spot\_instance\_termination\_action](#input\_spot\_instance\_termination\_action) | Action GCP takes when a Spot VM is preempted. Used only when `enable_spot = true`. `STOP` (default) transitions the instance to TERMINATED state while preserving the disk; `DELETE` immediately removes the instance and disk. | `string` | `"STOP"` | no |
 

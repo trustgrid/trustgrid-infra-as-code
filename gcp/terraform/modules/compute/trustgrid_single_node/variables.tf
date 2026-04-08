@@ -14,7 +14,7 @@ variable "zone" {
 
 variable "registration_mode" {
   type        = string
-  description = "Trustgrid registration mode. Use 'manual' to register the node via the portal after first boot, or 'auto' to supply a license and register automatically on first boot."
+  description = "Trustgrid registration mode. 'manual' (default) — register the node via the portal or serial console after first boot. 'auto' — supply a license key that is injected into instance metadata as tg-license-key; the Trustgrid image's built-in agent detects this key on first boot, registers the node, and reboots to connect."
   default     = "manual"
 
   validation {
@@ -25,7 +25,7 @@ variable "registration_mode" {
 
 variable "license" {
   type        = string
-  description = "Trustgrid node license. Optional when registration_mode is 'manual'. Required when registration_mode is 'auto'. Can be obtained from the Trustgrid portal, API, or the tg_license Terraform resource."
+  description = "Trustgrid node license key. Required when registration_mode is 'auto'; ignored when 'manual'. Injected into instance metadata as tg-license-key for consumption by the Trustgrid image's built-in registration agent. Obtain from the Trustgrid portal, API, or the tg_license Terraform resource."
   default     = null
   sensitive   = true
 
@@ -37,7 +37,7 @@ variable "license" {
 
 variable "registration_key" {
   type        = string
-  description = "Optional Trustgrid registration key used to associate the node with a specific cluster or configuration at first boot."
+  description = "Optional Trustgrid registration key used to associate the node with a specific cluster or configuration at first boot. Injected into instance metadata as tg-registration-key."
   default     = null
   sensitive   = true
 }
@@ -202,7 +202,7 @@ variable "serial_port_enable" {
 
 variable "extra_metadata" {
   type        = map(string)
-  description = "Additional instance metadata key/value pairs to merge with the module-managed metadata. Do not include tg-license, tg-registration-key, or serial-port-enable here; use the dedicated module variables instead."
+  description = "Additional instance metadata key/value pairs to merge with the module-managed metadata. Do not include tg-license-key, tg-registration-key, or serial-port-enable here; use the dedicated module variables instead."
   default     = {}
 }
 

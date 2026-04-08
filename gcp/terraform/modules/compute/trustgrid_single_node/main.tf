@@ -62,14 +62,6 @@ locals {
   ## In 'manual' mode boot_disk_type is passed through unchanged.
   effective_disk_type = var.disk_type_mode == "manual" ? var.boot_disk_type : "pd-balanced"
 
-  ## Render the startup script for the chosen registration mode.
-  ## In manual mode the script exits immediately; in auto mode it writes the
-  ## license (and optional registration key) to disk and calls register.sh.
-  startup_script = templatefile("${path.module}/templates/bootstrap.sh.tpl", {
-    registration_mode = var.registration_mode
-    license           = var.license != null ? var.license : ""
-    registration_key  = var.registration_key != null ? var.registration_key : ""
-  })
 }
 
 ## Compute instance
@@ -120,24 +112,18 @@ resource "google_compute_instance" "node" {
     # Caller-supplied metadata is merged first so that all module-owned keys
     # below take precedence and cannot be overridden by extra_metadata.
     var.extra_metadata,
-    # tg-license is read by the bootstrap script in auto-registration mode; the
-    # script retrieves it from the instance metadata API so that the value never
-    # lands on disk before the script controls permissions.
-    var.registration_mode == "auto" ? { "tg-license" = var.license } : {},
+    # tg-license-key is consumed by the Trustgrid image's built-in first-boot
+    # agent in auto-registration mode. The agent detects this key, registers the
+    # node with the Trustgrid control plane, and reboots automatically.
+    var.registration_mode == "auto" ? { "tg-license-key" = var.license } : {},
     # tg-registration-key is an optional cluster/configuration key consumed by
-    # the bootstrap script when supplied; injected regardless of mode so the
-    # script can discover it via the metadata API.
+    # the Trustgrid image's built-in agent when present.
     var.registration_key != null ? { "tg-registration-key" = var.registration_key } : {},
     # serial-port-enable controls access to the interactive serial console.
     # The module always owns this key; it is placed last so extra_metadata
     # cannot override it even if a caller mistakenly includes the key there.
     { "serial-port-enable" = var.serial_port_enable ? "1" : "0" },
   )
-
-  ## metadata_startup_script is executed by the GCP guest agent on first boot
-  ## (and on any subsequent boot where the script content changes). The rendered
-  ## script handles both manual and auto registration paths.
-  metadata_startup_script = local.startup_script
 
   shielded_instance_config {
     enable_secure_boot          = var.enable_secure_boot
