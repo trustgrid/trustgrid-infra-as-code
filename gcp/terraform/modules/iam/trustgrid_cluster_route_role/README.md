@@ -3,7 +3,8 @@
 This helper module creates the **minimum IAM permissions** for Trustgrid HA cluster
 nodes to perform route failover in GCP. When the active node detects its peer is
 unreachable it must delete the failing node's routes and create replacement routes
-via its own NIC — requiring `compute.routes.*` permissions at the project level.
+via its own NIC — requiring `compute.routes.*` and `compute.networks.updatePolicy`
+permissions at the project level.
 
 The module creates:
 1. A **custom IAM role** with least-privilege route-management permissions.
@@ -12,7 +13,7 @@ The module creates:
 
 > **Note:** Routes are a project-global resource in GCP. There is no per-VPC
 > route IAM scope, so the binding must be at project level. The custom role grants
-> only the four permissions actually needed — far fewer than the predefined
+> only the five permissions actually needed — far fewer than the predefined
 > `roles/compute.networkAdmin`.
 
 ---
@@ -21,7 +22,7 @@ The module creates:
 
 | Resource | Description |
 |---|---|
-| `google_project_iam_custom_role` | Custom role with `compute.routes.{list,get,create,delete}` |
+| `google_project_iam_custom_role` | Custom role with `compute.routes.{list,get,create,delete}` + `compute.networks.updatePolicy` |
 | `google_project_iam_binding` | Binds the custom role to `service_account_emails` at project scope |
 
 ### Permissions granted
@@ -32,6 +33,7 @@ The module creates:
 | `compute.routes.get` | Inspect individual route attributes before deletion/recreation |
 | `compute.routes.create` | Create replacement routes via the surviving node's NIC |
 | `compute.routes.delete` | Remove stale routes from the failed peer |
+| `compute.networks.updatePolicy` | Required by the GCP routes API at route-create time — GCP enforces this permission on the associated VPC network resource even though routes are a separate resource type. Without it, route creation returns 403. |
 
 ---
 
@@ -150,12 +152,12 @@ module "tg_route_role" {
 
 ## Least-privilege note
 
-The four `compute.routes.*` permissions are the minimum required for route
-failover. If Trustgrid adds additional HA mechanisms in future (e.g. next-hop
-instance updates), additional permissions may be needed. Subscribe to Trustgrid
-release notes and review the
-[risk assumptions](https://github.com/trustgrid/trustgrid-infra-as-code/blob/main/docs/prd.md)
-when upgrading.
+The five permissions (`compute.routes.{list,get,create,delete}` plus
+`compute.networks.updatePolicy`) are the minimum required for route failover.
+`compute.networks.updatePolicy` is a cross-resource requirement enforced by the
+GCP routes API on the associated VPC network at route-create time — it is not
+surfaced in the routes IAM documentation but is confirmed by the 403 error the
+Trustgrid agent returns without it.
 
 ---
 

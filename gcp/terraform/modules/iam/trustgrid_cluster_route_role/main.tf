@@ -16,12 +16,17 @@ terraform {
 ##   2. Delete the failing node's routes  (compute.routes.delete)
 ##   3. Create replacement routes via its own NIC (compute.routes.create)
 ##
+## compute.networks.updatePolicy is also required: the GCP routes API enforces
+## this permission on the associated VPC network resource at route-create time,
+## even though routes are a separate resource type. Without it, route creation
+## returns 403 "Required 'compute.networks.updatePolicy'".
+##
 ## The role is scoped to the project level (routes are a project-global resource
 ## in GCP — there is no per-VPC route IAM scope).
 ##
 ## Using a custom role (rather than the predefined compute.networkAdmin) follows
 ## the principle of least privilege: networkAdmin grants ~100 permissions whereas
-## route failover only requires these four.
+## route failover only requires these five.
 
 resource "google_project_iam_custom_role" "route_manager" {
   role_id     = var.role_id
@@ -34,6 +39,7 @@ resource "google_project_iam_custom_role" "route_manager" {
     "compute.routes.get",
     "compute.routes.create",
     "compute.routes.delete",
+    "compute.networks.updatePolicy",
   ]
 }
 

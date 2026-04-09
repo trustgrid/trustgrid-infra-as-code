@@ -27,7 +27,7 @@ variable "role_title" {
 variable "role_description" {
   type        = string
   description = "Description of the custom IAM role. Explains the purpose and least-privilege scope."
-  default     = "Least-privilege role granting Trustgrid HA cluster nodes the compute.routes permissions required to perform route failover: list, get, create, and delete project routes."
+  default     = "Least-privilege role granting Trustgrid HA cluster nodes the permissions required to perform route failover: compute.routes.{list,get,create,delete} and compute.networks.updatePolicy (required by the GCP routes API at route-create time)."
 }
 
 ## ─── Binding ───────────────────────────────────────────────────────────────────
