@@ -29,6 +29,12 @@ variable "gateway_port" {
   }
 }
 
+variable "enable_udp_ingress" {
+  type        = bool
+  description = "When true, the gateway ingress rule permits UDP in addition to TCP on gateway_port. UDP tunnel traffic improves performance and is recommended for most deployments. Set to false if your network policy restricts inbound UDP or you only need TCP tunnels."
+  default     = true
+}
+
 ## ─── Targeting ─────────────────────────────────────────────────────────────────
 
 variable "target_tags" {

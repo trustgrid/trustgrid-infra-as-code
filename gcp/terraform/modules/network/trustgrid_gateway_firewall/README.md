@@ -8,9 +8,11 @@ on GCP.
 > Edge nodes require only *egress* rules (use `trustgrid_mgmt_firewall`).
 > Gateway nodes require both egress (control-plane) and ingress (tunnel).
 
-The rule permits inbound **TCP and UDP on port 8443** (configurable) on the
-management VPC network and is scoped to instances carrying the specified
-network tags.
+The rule permits inbound **TCP on port 8443** (configurable) on the management
+VPC network. **UDP ingress is also enabled by default** and is recommended for
+improved tunnel performance, but can be disabled by setting
+`enable_udp_ingress = false`. The rule is scoped to instances carrying the
+specified network tags.
 
 ---
 
@@ -18,7 +20,7 @@ network tags.
 
 | Rule name | Direction | Protocol | Default port | Default source | Purpose |
 |---|---|---|---|---|---|
-| `<prefix>-gw-ingress` | INGRESS | TCP + UDP | 8443 | `0.0.0.0/0` | Accept tunnel connections from edge nodes |
+| `<prefix>-gw-ingress` | INGRESS | TCP + UDP (optional, default: on) | 8443 | `0.0.0.0/0` | Accept tunnel connections from edge nodes |
 
 ---
 
@@ -29,6 +31,7 @@ network tags.
 | `target_tags` | **Always set in production.** Apply the same network tag(s) used on Trustgrid gateway node instances (e.g. `["trustgrid-mgmt"]`). |
 | `source_ranges` | Default is `["0.0.0.0/0"]` because edge node public IPs are typically dynamic. If all edge nodes have known static IPs, restrict `source_ranges` to those CIDRs for a tighter posture. |
 | `gateway_port` | Keep at `8443` (the Trustgrid default) unless your gateway is explicitly configured to listen on a different port. |
+| `enable_udp_ingress` | Defaults to `true` (recommended). Set to `false` only if your network policy prohibits inbound UDP or your deployment uses TCP-only tunnels. |
 | `enable_logging` | Enable in regulated/audit environments; leave off in cost-sensitive deployments. |
 
 ---
@@ -70,6 +73,19 @@ module "tg_gw_fw" {
   network      = "projects/my-project/global/networks/mgmt-vpc"
   target_tags  = ["trustgrid-mgmt"]
   gateway_port = 9443
+}
+```
+
+### TCP-only ingress (UDP disabled)
+
+```hcl
+module "tg_gw_fw" {
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_gateway_firewall?ref=v0.3.0"
+
+  name_prefix        = "my-tg-gateway"
+  network            = "projects/my-project/global/networks/mgmt-vpc"
+  target_tags        = ["trustgrid-mgmt"]
+  enable_udp_ingress = false
 }
 ```
 
@@ -131,6 +147,7 @@ No modules.
 | <a name="input_target_tags"></a> [target\_tags](#input\_target\_tags) | Network tags scoping the rule to specific instances. Recommended in production. | `list(string)` | `[]` | no |
 | <a name="input_priority"></a> [priority](#input\_priority) | GCP firewall rule priority (lower wins). | `number` | `1000` | no |
 | <a name="input_enable_logging"></a> [enable\_logging](#input\_enable\_logging) | Enable GCP Firewall Rules Logging on the gateway ingress rule. | `bool` | `false` | no |
+| <a name="input_enable_udp_ingress"></a> [enable\_udp\_ingress](#input\_enable\_udp\_ingress) | When true, the gateway ingress rule permits UDP in addition to TCP on gateway_port. UDP tunnel traffic improves performance and is recommended for most deployments. Set to false if your network policy restricts inbound UDP or you only need TCP tunnels. | `bool` | `true` | no |
 
 ## Outputs
 

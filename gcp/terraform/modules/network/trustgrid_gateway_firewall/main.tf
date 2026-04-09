@@ -32,14 +32,20 @@ resource "google_compute_firewall" "gateway_ingress" {
 
   source_ranges = var.source_ranges
 
+  ## TCP is always permitted.
   allow {
     protocol = "tcp"
     ports    = ["${var.gateway_port}"]
   }
 
-  allow {
-    protocol = "udp"
-    ports    = ["${var.gateway_port}"]
+  ## UDP is optional (recommended). Improves tunnel performance but can be
+  ## disabled if network policy restricts inbound UDP.
+  dynamic "allow" {
+    for_each = var.enable_udp_ingress ? [1] : []
+    content {
+      protocol = "udp"
+      ports    = ["${var.gateway_port}"]
+    }
   }
 
   ## Scope to instances carrying the supplied tag(s). An empty list means the
