@@ -92,3 +92,13 @@ output "heartbeat_firewall_name" {
   description = "Name of the Google Compute firewall rule that permits HA cluster heartbeat traffic between gateway node data interfaces."
   value       = google_compute_firewall.heartbeat.name
 }
+
+output "internal_tcp_udp_firewall_name" {
+  description = "Name of the always-on internal TCP/UDP firewall rule for the data VPC CIDR."
+  value       = google_compute_firewall.allow_internal_tcp_udp.name
+}
+
+output "virtual_network_tcp_udp_firewall_name" {
+  description = "Name of the optional virtual-network TCP/UDP firewall rule (NONAT/pass-through mode). Null when virtual_network_cidr is not set."
+  value       = var.virtual_network_cidr != null ? google_compute_firewall.allow_virtual_network_tcp_udp[0].name : null
+}

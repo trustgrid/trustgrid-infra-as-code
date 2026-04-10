@@ -85,6 +85,11 @@ variable "data_vpc_network" {
   description = "Self-link or name of the existing VPC network used for the data (LAN/nic1) interface. The HA heartbeat firewall rule (TCP var.heartbeat_port) is attached to this network."
 }
 
+variable "data_vpc_cidr" {
+  type        = string
+  description = "CIDR block of the data VPC (or the internal source range that should be allowed for east-west TCP/UDP). Used by the always-on internal TCP/UDP firewall rule required in custom VPCs."
+}
+
 variable "management_subnetwork_a" {
   type        = string
   description = "Self-link or name of the existing subnetwork for node A's management (WAN/nic0) interface. Must have internet egress for control-plane connectivity and accept inbound tunnel traffic on port 8443."
@@ -118,6 +123,12 @@ variable "node_b_data_subnet_cidr" {
 variable "cluster_route_cidr" {
   type        = string
   description = "CIDR block advertised by the active cluster member as a GCP cloud route. When a failover occurs the active node updates the GCP project route for this CIDR to point to itself. Typically the downstream network reachable via the gateway cluster (e.g. 10.0.0.0/8)."
+}
+
+variable "virtual_network_cidr" {
+  type        = string
+  description = "Optional CIDR for remote networks that will traverse these gateways directly. When set, creates an additional TCP/UDP ingress firewall rule for that source range. Leave null when remote traffic is NATed into local data VPC source IPs before reaching GCP."
+  default     = null
 }
 
 ## ─── Heartbeat ─────────────────────────────────────────────────────────────────

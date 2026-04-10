@@ -168,6 +168,58 @@ resource "google_compute_firewall" "heartbeat" {
   }
 }
 
+## ─── Internal TCP/UDP firewall (always required in custom VPCs) ───────────────
+##
+## GCP custom VPCs do not include default internal allow rules for TCP/UDP.
+## This rule permits east-west TCP/UDP between instances in the data VPC CIDR.
+## Without it, ICMP may work while TCP/UDP traffic fails.
+
+resource "google_compute_firewall" "allow_internal_tcp_udp" {
+  name    = "${var.cluster_name}-allow-internal-tcp-udp"
+  network = var.data_vpc_network
+
+  direction     = "INGRESS"
+  source_ranges = [var.data_vpc_cidr]
+  target_tags   = ["trustgrid-gateway"]
+
+  description = "Allow internal TCP/UDP between instances in the data VPC CIDR. Required in custom VPCs for functional east-west traffic."
+
+  allow {
+    protocol = "tcp"
+  }
+
+  allow {
+    protocol = "udp"
+  }
+}
+
+## ─── Virtual network TCP/UDP firewall (optional for NONAT/pass-through) ───────
+##
+## Required only when remote virtual network addresses are routed directly
+## through the gateways (NONAT / pass-through mode). If traffic is NATed into
+## local data VPC ranges, this rule is typically not needed.
+
+resource "google_compute_firewall" "allow_virtual_network_tcp_udp" {
+  count = var.virtual_network_cidr != null ? 1 : 0
+
+  name    = "${var.cluster_name}-allow-vpn-tcp-udp"
+  network = var.data_vpc_network
+
+  direction     = "INGRESS"
+  source_ranges = [var.virtual_network_cidr]
+  target_tags   = ["trustgrid-gateway"]
+
+  description = "Allow TCP/UDP ingress from the Trustgrid virtual network CIDR. Required for NONAT/pass-through routing."
+
+  allow {
+    protocol = "tcp"
+  }
+
+  allow {
+    protocol = "udp"
+  }
+}
+
 ## ─── Gateway node A ────────────────────────────────────────────────────────────
 ##
 ## Node A is in zone_a with automatic registration. The license JWT from

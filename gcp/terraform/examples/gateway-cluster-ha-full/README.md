@@ -178,6 +178,7 @@ tg_org_id = "my-trustgrid-org-id"
 ## Network (substitute your real VPC/subnet names or self-links)
 management_vpc_network  = "projects/my-gcp-project/global/networks/mgmt-vpc"
 data_vpc_network        = "projects/my-gcp-project/global/networks/data-vpc"
+data_vpc_cidr           = "10.47.0.0/16"
 management_subnetwork_a = "projects/my-gcp-project/regions/us-central1/subnetworks/mgmt-subnet-a"
 management_subnetwork_b = "projects/my-gcp-project/regions/us-central1/subnetworks/mgmt-subnet-b"
 data_subnetwork_a       = "projects/my-gcp-project/regions/us-central1/subnetworks/data-subnet-a"
@@ -187,6 +188,7 @@ data_subnetwork_b       = "projects/my-gcp-project/regions/us-central1/subnetwor
 node_a_data_subnet_cidr = "10.1.0.0/24"
 node_b_data_subnet_cidr = "10.2.0.0/24"
 cluster_route_cidr      = "10.0.0.0/8"
+# virtual_network_cidr  = "10.200.0.0/16" # set when remote network CIDRs traverse these gateways directly (not NATed to local VPC IPs)
 ```
 
 ### 4. Apply
@@ -215,51 +217,19 @@ terraform output gateway_a_external_ip # or to this individual node IP
 terraform output gateway_b_external_ip # or to this individual node IP
 ```
 
-## Variables
+Variable and output reference is auto-generated in the `terraform-docs` section below.
 
-| Name | Type | Required | Default | Sensitive | Description |
-|---|---|---|---|---|---|
-| `project` | string | yes | — | no | GCP project ID |
-| `region` | string | yes | — | no | GCP region (e.g. `us-central1`) |
-| `cluster_name` | string | yes | — | no | Base name for cluster resources |
-| `zone_a` | string | yes | — | no | Zone for node A (e.g. `us-central1-a`) |
-| `zone_b` | string | yes | — | no | Zone for node B (must differ from zone_a) |
-| `tg_api_host` | string | no | `https://api.trustgrid.io` | no | Trustgrid API endpoint |
-| `tg_org_id` | string | yes | — | no | Trustgrid Organization ID |
-| `tg_registration_key` | string | no | `null` | **yes** | Optional cluster registration key |
-| `tg_node_timeout` | number | no | `300` | no | Seconds to wait for node online |
-| `management_vpc_network` | string | yes | — | no | Self-link or name of management VPC |
-| `data_vpc_network` | string | yes | — | no | Self-link or name of data VPC |
-| `management_subnetwork_a` | string | yes | — | no | Management subnetwork for node A |
-| `management_subnetwork_b` | string | yes | — | no | Management subnetwork for node B |
-| `data_subnetwork_a` | string | yes | — | no | Data subnetwork for node A |
-| `data_subnetwork_b` | string | yes | — | no | Data subnetwork for node B |
-| `node_a_data_subnet_cidr` | string | yes | — | no | CIDR of node A's data subnet |
-| `node_b_data_subnet_cidr` | string | yes | — | no | CIDR of node B's data subnet |
-| `cluster_route_cidr` | string | yes | — | no | CIDR advertised by active cluster member as GCP cloud route |
-| `heartbeat_port` | number | no | `9000` | no | TCP port for HA gossip (1–65535) |
+## Additional firewall behavior
 
-## Outputs
+Beyond management/gateway ingress and heartbeat, this example adds:
 
-| Name | Description |
-|---|---|
-| `gateway_a_external_ip` | Static external IP of node A — configure edge nodes to connect here |
-| `gateway_b_external_ip` | Static external IP of node B — configure edge nodes to connect here |
-| `gateway_a_internal_ip` | Internal IP of node A nic0 |
-| `gateway_b_internal_ip` | Internal IP of node B nic0 |
-| `gateway_a_data_ip` | Internal IP of node A nic1 (used for heartbeat) |
-| `gateway_b_data_ip` | Internal IP of node B nic1 (used for heartbeat) |
-| `gateway_a_name` | Instance name of node A |
-| `gateway_b_name` | Instance name of node B |
-| `cluster_fqdn` | Trustgrid cluster FQDN — use for edge node configuration |
-| `node_a_fqdn` | Trustgrid FQDN of node A |
-| `node_b_fqdn` | Trustgrid FQDN of node B |
-| `node_a_uid` | Trustgrid UID of node A |
-| `node_b_uid` | Trustgrid UID of node B |
-| `node_a_service_account_email` | GCP service account email for node A |
-| `node_b_service_account_email` | GCP service account email for node B |
-| `cluster_route_role_id` | ID of the custom IAM route-manager role |
-| `heartbeat_firewall_name` | Name of the TCP heartbeat firewall rule |
+- `google_compute_firewall.allow_internal_tcp_udp` (always on)
+  - Allows east-west TCP/UDP from `data_vpc_cidr`
+  - Required in GCP custom VPCs where internal TCP/UDP is otherwise denied
+- `google_compute_firewall.allow_virtual_network_tcp_udp` (optional)
+  - Created only when `virtual_network_cidr` is set
+  - Required for NONAT / pass-through virtual network routing
+  - Usually not needed when traffic is NATed into local VPC ranges
 
 ## Security notes
 
@@ -305,47 +275,99 @@ page. Always pin to a semver tag — never use a branch name or `?ref=main`.
 ## Requirements
 
 | Name | Version |
-|---|---|
-| terraform | >= 1.3 |
-| google | >= 6.0 |
-| tg | ~> 2.2 |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
+| <a name="requirement_google"></a> [google](#requirement\_google) | >= 6.0 |
+| <a name="requirement_tg"></a> [tg](#requirement\_tg) | ~> 2.2 |
 
 ## Providers
 
 | Name | Version |
-|---|---|
-| google | >= 6.0 |
-| tg | ~> 2.2 |
+|------|---------|
+| <a name="provider_google"></a> [google](#provider\_google) | 7.27.0 |
+| <a name="provider_tg"></a> [tg](#provider\_tg) | 2.2.0 |
 
 ## Modules
 
 | Name | Source | Version |
-|---|---|---|
-| node\_a\_sa | trustgrid\_node\_service\_account | v0.10.0 |
-| node\_b\_sa | trustgrid\_node\_service\_account | v0.10.0 |
-| cluster\_route\_role | trustgrid\_cluster\_route\_role | v0.10.0 |
-| mgmt\_firewall | trustgrid\_mgmt\_firewall | v0.10.0 |
-| gateway\_firewall | trustgrid\_gateway\_firewall | v0.10.0 |
-| gateway\_node\_a | trustgrid\_single\_node | v0.10.0 |
-| gateway\_node\_b | trustgrid\_single\_node | v0.10.0 |
+|------|--------|---------|
+| <a name="module_cluster_route_role"></a> [cluster\_route\_role](#module\_cluster\_route\_role) | github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_cluster_route_role | v0.10.0 |
+| <a name="module_gateway_firewall"></a> [gateway\_firewall](#module\_gateway\_firewall) | github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_gateway_firewall | v0.10.0 |
+| <a name="module_gateway_node_a"></a> [gateway\_node\_a](#module\_gateway\_node\_a) | github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node | v0.10.0 |
+| <a name="module_gateway_node_b"></a> [gateway\_node\_b](#module\_gateway\_node\_b) | github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node | v0.10.0 |
+| <a name="module_mgmt_firewall"></a> [mgmt\_firewall](#module\_mgmt\_firewall) | github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_mgmt_firewall | v0.10.0 |
+| <a name="module_node_a_sa"></a> [node\_a\_sa](#module\_node\_a\_sa) | github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account | v0.10.0 |
+| <a name="module_node_b_sa"></a> [node\_b\_sa](#module\_node\_b\_sa) | github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account | v0.10.0 |
 
 ## Resources
 
 | Name | Type |
-|---|---|
-| google\_compute\_firewall.heartbeat | resource |
-| tg\_license.node\_a | resource |
-| tg\_license.node\_b | resource |
-| tg\_cluster.main | resource |
-| tg\_cluster\_member.node\_a | resource |
-| tg\_cluster\_member.node\_b | resource |
-| tg\_node\_cluster\_config.node\_a | resource |
-| tg\_node\_cluster\_config.node\_b | resource |
-| tg\_network\_config.node\_a | resource |
-| tg\_network\_config.node\_b | resource |
-| tg\_network\_config.cluster | resource |
-| data.tg\_node.node\_a | data source |
-| data.tg\_node.node\_b | data source |
-| data.tg\_node\_iface\_names.node\_a | data source |
-| data.tg\_node\_iface\_names.node\_b | data source |
+|------|------|
+| [google_compute_firewall.allow_internal_tcp_udp](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_firewall) | resource |
+| [google_compute_firewall.allow_virtual_network_tcp_udp](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_firewall) | resource |
+| [google_compute_firewall.heartbeat](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_firewall) | resource |
+| [tg_cluster.main](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/cluster) | resource |
+| [tg_cluster_member.node_a](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/cluster_member) | resource |
+| [tg_cluster_member.node_b](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/cluster_member) | resource |
+| [tg_license.node_a](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/license) | resource |
+| [tg_license.node_b](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/license) | resource |
+| [tg_network_config.cluster](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/network_config) | resource |
+| [tg_network_config.node_a](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/network_config) | resource |
+| [tg_network_config.node_b](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/network_config) | resource |
+| [tg_node_cluster_config.node_a](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/node_cluster_config) | resource |
+| [tg_node_cluster_config.node_b](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/resources/node_cluster_config) | resource |
+| [tg_node.node_a](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/data-sources/node) | data source |
+| [tg_node.node_b](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/data-sources/node) | data source |
+| [tg_node_iface_names.node_a](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/data-sources/node_iface_names) | data source |
+| [tg_node_iface_names.node_b](https://registry.terraform.io/providers/trustgrid/tg/latest/docs/data-sources/node_iface_names) | data source |
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | Base name for the gateway cluster. Used to name both nodes (tg\_license + compute), service accounts, firewall rules, and the Trustgrid cluster object (e.g. tg-gw-prod → tg-gw-prod-gw-a, tg-gw-prod-gw-b, tg-gw-prod cluster). | `string` | n/a | yes |
+| <a name="input_cluster_route_cidr"></a> [cluster\_route\_cidr](#input\_cluster\_route\_cidr) | CIDR block advertised by the active cluster member as a GCP cloud route. When a failover occurs the active node updates the GCP project route for this CIDR to point to itself. Typically the downstream network reachable via the gateway cluster (e.g. 10.0.0.0/8). | `string` | n/a | yes |
+| <a name="input_data_subnetwork_a"></a> [data\_subnetwork\_a](#input\_data\_subnetwork\_a) | Self-link or name of the existing subnetwork for node A's data (LAN/nic1) interface. | `string` | n/a | yes |
+| <a name="input_data_subnetwork_b"></a> [data\_subnetwork\_b](#input\_data\_subnetwork\_b) | Self-link or name of the existing subnetwork for node B's data (LAN/nic1) interface. | `string` | n/a | yes |
+| <a name="input_data_vpc_cidr"></a> [data\_vpc\_cidr](#input\_data\_vpc\_cidr) | CIDR block of the data VPC (or the internal source range that should be allowed for east-west TCP/UDP). Used by the always-on internal TCP/UDP firewall rule required in custom VPCs. | `string` | n/a | yes |
+| <a name="input_data_vpc_network"></a> [data\_vpc\_network](#input\_data\_vpc\_network) | Self-link or name of the existing VPC network used for the data (LAN/nic1) interface. The HA heartbeat firewall rule (TCP var.heartbeat\_port) is attached to this network. | `string` | n/a | yes |
+| <a name="input_heartbeat_port"></a> [heartbeat\_port](#input\_heartbeat\_port) | TCP port used by Trustgrid HA gossip (heartbeat) traffic between cluster nodes. Must match the port configured in tg\_node\_cluster\_config and the GCP heartbeat firewall rule. Default is 9000. | `number` | `9000` | no |
+| <a name="input_management_subnetwork_a"></a> [management\_subnetwork\_a](#input\_management\_subnetwork\_a) | Self-link or name of the existing subnetwork for node A's management (WAN/nic0) interface. Must have internet egress for control-plane connectivity and accept inbound tunnel traffic on port 8443. | `string` | n/a | yes |
+| <a name="input_management_subnetwork_b"></a> [management\_subnetwork\_b](#input\_management\_subnetwork\_b) | Self-link or name of the existing subnetwork for node B's management (WAN/nic0) interface. Must have internet egress for control-plane connectivity and accept inbound tunnel traffic on port 8443. | `string` | n/a | yes |
+| <a name="input_management_vpc_network"></a> [management\_vpc\_network](#input\_management\_vpc\_network) | Self-link or name of the existing VPC network used for the management (WAN/nic0) interface. Management and gateway firewall rules are attached to this network. | `string` | n/a | yes |
+| <a name="input_node_a_data_subnet_cidr"></a> [node\_a\_data\_subnet\_cidr](#input\_node\_a\_data\_subnet\_cidr) | CIDR block of the data subnet used by gateway node A (e.g. 10.1.0.0/24). Used as a source range in the HA heartbeat firewall rule and as the destination in node B's LAN route for cross-subnet heartbeat routing. | `string` | n/a | yes |
+| <a name="input_node_b_data_subnet_cidr"></a> [node\_b\_data\_subnet\_cidr](#input\_node\_b\_data\_subnet\_cidr) | CIDR block of the data subnet used by gateway node B (e.g. 10.2.0.0/24). Used as a source range in the HA heartbeat firewall rule and as the destination in node A's LAN route for cross-subnet heartbeat routing. | `string` | n/a | yes |
+| <a name="input_project"></a> [project](#input\_project) | GCP project ID in which to deploy all resources. The cluster route role IAM binding is also created at project scope in this project. | `string` | n/a | yes |
+| <a name="input_region"></a> [region](#input\_region) | GCP region for provider configuration and static IP address allocation (e.g. us-central1). Both nodes should be in zones within this region. | `string` | n/a | yes |
+| <a name="input_tg_api_host"></a> [tg\_api\_host](#input\_tg\_api\_host) | Trustgrid Portal API endpoint. Leave at the default unless targeting a non-production Trustgrid control plane. The provider also reads the TG\_API\_HOST environment variable. | `string` | `"https://api.trustgrid.io"` | no |
+| <a name="input_tg_node_timeout"></a> [tg\_node\_timeout](#input\_tg\_node\_timeout) | Seconds to wait for each Trustgrid node to come online before timing out. The data.tg\_node readiness gate polls the Trustgrid control plane for this long before failing. Increase for slow-boot environments (default 300 = 5 minutes). | `number` | `300` | no |
+| <a name="input_tg_org_id"></a> [tg\_org\_id](#input\_tg\_org\_id) | Trustgrid Organization ID. The provider will validate that the supplied API credentials belong to this org and fail early if they do not. Obtain from the Trustgrid portal under Organization Settings. | `string` | n/a | yes |
+| <a name="input_tg_registration_key"></a> [tg\_registration\_key](#input\_tg\_registration\_key) | Optional Trustgrid registration key. When provided it is passed to both gateway nodes as instance metadata and associates them with a pre-created group or cluster at first-boot registration time. Supply via environment variable (TF\_VAR\_tg\_registration\_key) — never commit to source control. | `string` | `null` | no |
+| <a name="input_virtual_network_cidr"></a> [virtual\_network\_cidr](#input\_virtual\_network\_cidr) | Optional Trustgrid virtual network CIDR. When set, creates an additional TCP/UDP ingress firewall rule allowing traffic from this range. Required for NONAT/pass-through routing; leave null when traffic is NATed into local data VPC ranges. | `string` | `null` | no |
+| <a name="input_zone_a"></a> [zone\_a](#input\_zone\_a) | GCP zone for gateway node A (e.g. us-central1-a). Must be a different zone from zone\_b for cross-zone high availability. | `string` | n/a | yes |
+| <a name="input_zone_b"></a> [zone\_b](#input\_zone\_b) | GCP zone for gateway node B (e.g. us-central1-b). Must differ from zone\_a to achieve cross-zone high availability. | `string` | n/a | yes |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_cluster_fqdn"></a> [cluster\_fqdn](#output\_cluster\_fqdn) | Trustgrid cluster FQDN. Reference this when configuring edge nodes to connect to the gateway cluster. |
+| <a name="output_cluster_route_role_id"></a> [cluster\_route\_role\_id](#output\_cluster\_route\_role\_id) | Resource ID of the custom IAM route-manager role bound to both gateway service accounts. |
+| <a name="output_gateway_a_data_ip"></a> [gateway\_a\_data\_ip](#output\_gateway\_a\_data\_ip) | Internal IP address of gateway node A data interface (nic1). Used as the heartbeat host in tg\_node\_cluster\_config. |
+| <a name="output_gateway_a_external_ip"></a> [gateway\_a\_external\_ip](#output\_gateway\_a\_external\_ip) | Static external IP address of gateway node A management interface (nic0). Configure edge nodes to connect to this IP. |
+| <a name="output_gateway_a_internal_ip"></a> [gateway\_a\_internal\_ip](#output\_gateway\_a\_internal\_ip) | Internal IP address of gateway node A management interface (nic0). |
+| <a name="output_gateway_a_name"></a> [gateway\_a\_name](#output\_gateway\_a\_name) | Name of gateway node A Compute Engine instance. |
+| <a name="output_gateway_b_data_ip"></a> [gateway\_b\_data\_ip](#output\_gateway\_b\_data\_ip) | Internal IP address of gateway node B data interface (nic1). Used as the heartbeat host in tg\_node\_cluster\_config. |
+| <a name="output_gateway_b_external_ip"></a> [gateway\_b\_external\_ip](#output\_gateway\_b\_external\_ip) | Static external IP address of gateway node B management interface (nic0). Configure edge nodes to connect to this IP. |
+| <a name="output_gateway_b_internal_ip"></a> [gateway\_b\_internal\_ip](#output\_gateway\_b\_internal\_ip) | Internal IP address of gateway node B management interface (nic0). |
+| <a name="output_gateway_b_name"></a> [gateway\_b\_name](#output\_gateway\_b\_name) | Name of gateway node B Compute Engine instance. |
+| <a name="output_heartbeat_firewall_name"></a> [heartbeat\_firewall\_name](#output\_heartbeat\_firewall\_name) | Name of the Google Compute firewall rule that permits HA cluster heartbeat traffic between gateway node data interfaces. |
+| <a name="output_internal_tcp_udp_firewall_name"></a> [internal\_tcp\_udp\_firewall\_name](#output\_internal\_tcp\_udp\_firewall\_name) | Name of the always-on internal TCP/UDP firewall rule for the data VPC CIDR. |
+| <a name="output_node_a_fqdn"></a> [node\_a\_fqdn](#output\_node\_a\_fqdn) | Trustgrid FQDN of gateway node A as registered in the control plane. |
+| <a name="output_node_a_service_account_email"></a> [node\_a\_service\_account\_email](#output\_node\_a\_service\_account\_email) | Email of the GCP service account attached to gateway node A. |
+| <a name="output_node_a_uid"></a> [node\_a\_uid](#output\_node\_a\_uid) | Trustgrid UID of gateway node A. |
+| <a name="output_node_b_fqdn"></a> [node\_b\_fqdn](#output\_node\_b\_fqdn) | Trustgrid FQDN of gateway node B as registered in the control plane. |
+| <a name="output_node_b_service_account_email"></a> [node\_b\_service\_account\_email](#output\_node\_b\_service\_account\_email) | Email of the GCP service account attached to gateway node B. |
+| <a name="output_node_b_uid"></a> [node\_b\_uid](#output\_node\_b\_uid) | Trustgrid UID of gateway node B. |
+| <a name="output_virtual_network_tcp_udp_firewall_name"></a> [virtual\_network\_tcp\_udp\_firewall\_name](#output\_virtual\_network\_tcp\_udp\_firewall\_name) | Name of the optional virtual-network TCP/UDP firewall rule (NONAT/pass-through mode). Null when virtual\_network\_cidr is not set. |
 <!-- END_TF_DOCS -->

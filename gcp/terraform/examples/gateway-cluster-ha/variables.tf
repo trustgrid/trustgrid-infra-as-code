@@ -84,6 +84,11 @@ variable "data_vpc_network" {
   description = "Self-link or name of the existing VPC network used for the data (LAN/nic1) interface. The HA heartbeat firewall rule (TCP 9000) is attached to this network."
 }
 
+variable "data_vpc_cidr" {
+  type        = string
+  description = "CIDR block of the data VPC (or the internal source range that should be allowed for east-west TCP/UDP). Used by the always-on internal TCP/UDP firewall rule required in custom VPCs."
+}
+
 variable "data_subnetwork" {
   type        = string
   description = "Self-link or name of the existing subnetwork for the data (LAN/nic1) interface on both nodes."
@@ -97,4 +102,10 @@ variable "node_a_data_subnet_cidr" {
 variable "node_b_data_subnet_cidr" {
   type        = string
   description = "CIDR block of the data subnet used by gateway node B (e.g. 10.2.0.0/24). Used as a source range in the HA heartbeat firewall rule (TCP 9000) to allow node-B-originated heartbeat traffic to reach node A."
+}
+
+variable "virtual_network_cidr" {
+  type        = string
+  description = "Optional CIDR for remote networks that will traverse these gateways directly. When set, creates an additional TCP/UDP ingress firewall rule for that source range. Leave null when remote traffic is NATed into local data VPC source IPs before reaching GCP."
+  default     = null
 }
