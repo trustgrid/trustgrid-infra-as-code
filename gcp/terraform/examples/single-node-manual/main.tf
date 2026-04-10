@@ -30,7 +30,7 @@ provider "google" {
 ## passed directly to the compute module.
 
 module "node_sa" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.10.0"
 
   account_id   = "${var.name}-sa"
   display_name = "Trustgrid Node SA — ${var.name}"
@@ -45,7 +45,7 @@ module "node_sa" {
 ## network tag that is applied to the node instance below.
 
 module "mgmt_firewall" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_mgmt_firewall?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_mgmt_firewall?ref=v0.10.0"
 
   name_prefix = var.name
   network     = var.management_vpc_network
@@ -62,7 +62,7 @@ module "mgmt_firewall" {
 ## it is owned independently of the instance resource.
 
 module "node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.10.0"
 
   ## Identity
   name = var.name

@@ -46,7 +46,7 @@
         "References in nearby docs/examples are updated to point to the correct HA example variants"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Preserve concise user journey guidance and security notes for sensitive values."
     }
   ]

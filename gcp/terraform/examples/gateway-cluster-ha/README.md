@@ -212,15 +212,34 @@ independently of the instance. Replacing an instance (e.g. via `terraform taint`
 preserves the same external IP. Edge nodes do not need to be reconfigured after a gateway
 node replacement.
 
+## Migrating to gateway-cluster-ha-full
+
+When your team is ready for fully automated end-to-end deployment, migrate to
+[gateway-cluster-ha-full](../gateway-cluster-ha-full):
+
+| Step | Action |
+|---|---|
+| 1 | Obtain Trustgrid API Key ID + Secret from **Organization → API Keys** in the portal |
+| 2 | Export `TG_API_KEY_ID`, `TG_API_KEY_SECRET`, and `TF_VAR_tg_registration_key` as env vars |
+| 3 | Copy `gateway-cluster-ha-full/` to a new working directory |
+| 4 | Mirror your existing VPC/subnet values into the new `terraform.tfvars` |
+| 5 | Add per-node subnet vars (`management_subnetwork_a/b`, `data_subnetwork_a/b`) and `cluster_route_cidr` |
+| 6 | Destroy the infra-only stack (`terraform destroy`) and apply the full stack, or import existing resources |
+
+The full example adds `tg_cluster`, `tg_cluster_member`, `tg_node_cluster_config`,
+and `tg_network_config` resources that cannot be imported into the infra-only stack —
+a clean re-deploy is the simplest migration path when the cluster is not yet in
+production.
+
 ## Module source references
 
 The `source` paths in `main.tf` use pinned GitHub source references:
 
 ```hcl
-source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.10.0"
 ```
 
-All modules in this example are pinned to `v0.11.0`. To upgrade, replace the tag with the
+All modules in this example are pinned to `v0.10.0`. To upgrade, replace the tag with the
 desired version from the
 [trustgrid-infra-as-code releases](https://github.com/trustgrid/trustgrid-infra-as-code/releases)
 page. Always pin to a semver tag — never use a branch name or `?ref=main` in production

@@ -92,15 +92,24 @@ After `terraform apply`:
 
 The module creates a `google_compute_address` resource that is independent of the instance. Destroying and re-creating the instance (e.g. via `terraform taint` or a full `destroy + apply`) preserves the same external IP. This ensures that DNS records and Trustgrid portal configuration remain valid after a node replacement.
 
+## Related examples
+
+| Example | When to use |
+|---|---|
+| **This example** (`single-node-manual`) | Single edge node, manual registration |
+| [`single-node-auto`](../single-node-auto) | Single edge node, automatic registration via license key |
+| [`gateway-cluster-ha`](../gateway-cluster-ha) | Dual-node HA gateway cluster, no Trustgrid API required |
+| [`gateway-cluster-ha-full`](../gateway-cluster-ha-full) | Dual-node HA gateway cluster, full automation with Trustgrid API |
+
 ## Module source references
 
 The `source` paths in `main.tf` use pinned GitHub source references:
 
 ```hcl
-source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.10.0"
 ```
 
-All modules in this example are pinned to `v0.11.0`. To upgrade, replace the tag with the
+All modules in this example are pinned to `v0.10.0`. To upgrade, replace the tag with the
 desired version from the
 [trustgrid-infra-as-code releases](https://github.com/trustgrid/trustgrid-infra-as-code/releases)
 page. Always pin to a semver tag — never use a branch name or `?ref=main` in

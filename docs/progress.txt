@@ -1,5 +1,5 @@
 ## Codebase Patterns
-- GCP examples use relative `source = "../../modules/…"` paths so `terraform validate` works in the repo without a tagged release; README documents switching to pinned GitHub source for external deployments (v0.11.0 is the planned release tag)
+- GCP examples use GitHub source refs pinned to `v0.10.0` (latest released tag); all module sources must use `?ref=v0.10.0` — v0.11.0 does not exist, never use non-existent future tags
 - trustgrid/tg provider config: uses `api_host`, `api_key_id`, `api_key_secret`, `org_id` fields (NOT `host`/`org`) — credentials supplied via TG_API_KEY_ID and TG_API_KEY_SECRET env vars
 - tg_license resource outputs: `license` (JWT), `uid`, `fqdn`, `id` — pass `license` to compute module, `uid` to data.tg_node for readiness gate
 - tg_network_config: use `node_id` for per-node config, `cluster_fqdn` for cluster-level config — NOT `node`/`cluster` field names
@@ -314,4 +314,37 @@
   - tg_node_iface_names: `interfaces[0]` = management (nic0), `interfaces[1]` = data/LAN (nic1); use `.os_name` for NIC name in tg_network_config
   - cidrhost(cidr, 1) is the idiomatic way to compute the gateway/next-hop from a CIDR block in Terraform
   - The trustgrid/tg provider CAN be installed and `terraform validate` passes without real API credentials — validation is purely schema-based
+---
+
+## 2026-04-10 - US-003 + Review Fix - Docs clarity and v0.11.0 blocking ref fix
+- What was implemented
+  - **CRITICAL FIX (review.md):** Updated all 7 module `source` refs in `gateway-cluster-ha-full/main.tf` from `?ref=v0.11.0` to `?ref=v0.10.0` (v0.11.0 does not exist; latest tag is v0.10.0)
+  - **CRITICAL FIX (review.md):** Same fix applied to all module source refs in `gateway-cluster-ha/main.tf`, `single-node-auto/main.tf`, `single-node-manual/main.tf`
+  - **CRITICAL FIX (review.md):** Updated all README "Module source references" sections to show `v0.10.0` in all four GCP example READMEs
+  - **WARNING FIX (review.md):** Added explicit `depends_on = [tg_cluster.main, data.tg_node.*]` to both `tg_cluster_member` resources for clearer dependency ordering
+  - **WARNING FIX (review.md):** Updated sequencing comment in `gateway-cluster-ha-full/main.tf` preamble to explicitly include `tg_cluster.main` between the readiness gate and `tg_cluster_member` steps
+  - **SUGGESTION FIX (review.md):** Added `required_version = ">= 1.3"` to the `terraform {}` block in `gateway-cluster-ha-full/main.tf`
+  - **US-003 — gateway-cluster-ha README:** Added "Migrating to gateway-cluster-ha-full" section with step-by-step migration table
+  - **US-003 — gateway-cluster-ha-full README:** Enhanced Prerequisites → Trustgrid API section with required permission list and env-var rationale callout; enhanced One-pass apply sequencing section with explicit note about `data.tg_node` as readiness gate and retry guidance on timeout
+  - **US-003 — single-node-manual README:** Added "Related examples" table cross-linking all four GCP examples
+  - **US-003 — single-node-auto README:** Added "Related examples" table cross-linking all four GCP examples
+  - Deleted `docs/review.md` after addressing all blocking/warning issues
+- Files changed
+  - `gcp/terraform/examples/gateway-cluster-ha-full/main.tf` (v0.10.0 refs, required_version, depends_on fix, sequencing comment fix)
+  - `gcp/terraform/examples/gateway-cluster-ha-full/README.md` (v0.10.0 in source snippet + TF_DOCS table, enhanced prerequisites, enhanced sequencing section)
+  - `gcp/terraform/examples/gateway-cluster-ha/main.tf` (v0.10.0 refs)
+  - `gcp/terraform/examples/gateway-cluster-ha/README.md` (v0.10.0 in source snippet, added migration section)
+  - `gcp/terraform/examples/single-node-auto/main.tf` (v0.10.0 refs)
+  - `gcp/terraform/examples/single-node-auto/README.md` (v0.10.0 in source snippet, added related examples table)
+  - `gcp/terraform/examples/single-node-manual/main.tf` (v0.10.0 refs)
+  - `gcp/terraform/examples/single-node-manual/README.md` (v0.10.0 in source snippet, added related examples table)
+  - `docs/prd.json` (US-003 passes: true)
+  - `docs/review.md` (deleted)
+  - `docs/progress.txt`
+- **Learnings for future iterations:**
+  - NEVER ship module source refs to a tag that does not yet exist in the repo — always audit with `git tag` before finalizing any example `?ref=` value
+  - `tg_cluster_member` should always have explicit `depends_on = [tg_cluster.main]` even though Terraform infers it via `cluster_fqdn` reference — explicit is clearer for readers
+  - GCP example READMEs benefit from a "Related examples" table that orients users across single-node vs HA and manual vs auto dimensions
+  - The Trustgrid API key prerequisite section should list the minimum permissions needed (`node:create`, `cluster:create/write`, `node:write`) so operators can scope keys correctly
+  - `required_version = ">= 1.3"` in the `terraform {}` block should match the minimum version documented in the README requirements table
 ---

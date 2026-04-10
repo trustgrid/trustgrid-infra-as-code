@@ -85,6 +85,11 @@ You need a Trustgrid API Key with sufficient permissions to create nodes, cluste
 configure network settings. Obtain the key from the Trustgrid portal under
 **Organization → API Keys**.
 
+The API key must have at minimum:
+- `node:create` — to create node objects via `tg_license`
+- `cluster:create`, `cluster:write` — to create `tg_cluster` and add members
+- `node:write` — to apply `tg_node_cluster_config` and `tg_network_config`
+
 Supply credentials via environment variables (**never commit them to source control**):
 
 ```bash
@@ -93,6 +98,10 @@ export TG_API_KEY_SECRET="<your-api-key-secret>"
 ```
 
 Find your Org ID in the Trustgrid portal under **Organization → Settings**.
+
+> **Why environment variables?** The `tg` provider reads `TG_API_KEY_ID` and
+> `TG_API_KEY_SECRET` automatically. This keeps credentials out of
+> `terraform.tfvars`, state files, and version control.
 
 ### GCP permissions
 
@@ -117,8 +126,9 @@ intervention:
 
 1. `tg_license.node_a` + `tg_license.node_b` — creates node objects in Trustgrid
 2. GCP compute modules start provisioning (instances boot in parallel)
-3. `data.tg_node.node_a` + `data.tg_node.node_b` — blocks until nodes are online
-   (up to `tg_node_timeout` seconds, default 5 minutes)
+3. `data.tg_node.node_a` + `data.tg_node.node_b` — **blocks** until nodes are online
+   (up to `tg_node_timeout` seconds, default 5 minutes). This is the readiness gate
+   that prevents cluster and network config from racing ahead of node boot.
 4. `tg_cluster.main` — creates the Trustgrid cluster
 5. `tg_cluster_member` × 2 — joins both nodes to cluster
 6. `tg_node_cluster_config` × 2 — sets gossip host/port per node
@@ -126,8 +136,9 @@ intervention:
 8. `tg_network_config` × 2 (per node) — sets LAN routes
 9. `tg_network_config` × 1 (cluster) — sets cluster cloud route
 
-If a node takes longer than `tg_node_timeout` to boot and register, increase the
-timeout variable and re-run `terraform apply`.
+If a node takes longer than `tg_node_timeout` to boot and register, the apply will
+fail at step 3 with a timeout error. Increase `tg_node_timeout` (e.g. to `600`) and
+re-run `terraform apply` — idempotent resources already created will be skipped.
 
 ## Usage
 
@@ -282,10 +293,10 @@ at cluster scope so the active member always owns the advertised route.
 The `source` paths in `main.tf` use pinned GitHub source references:
 
 ```hcl
-source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.10.0"
 ```
 
-All modules in this example are pinned to `v0.11.0`. To upgrade, replace the tag with
+All modules in this example are pinned to `v0.10.0`. To upgrade, replace the tag with
 the desired version from the
 [trustgrid-infra-as-code releases](https://github.com/trustgrid/trustgrid-infra-as-code/releases)
 page. Always pin to a semver tag — never use a branch name or `?ref=main`.
@@ -310,13 +321,13 @@ page. Always pin to a semver tag — never use a branch name or `?ref=main`.
 
 | Name | Source | Version |
 |---|---|---|
-| node\_a\_sa | trustgrid\_node\_service\_account | v0.11.0 |
-| node\_b\_sa | trustgrid\_node\_service\_account | v0.11.0 |
-| cluster\_route\_role | trustgrid\_cluster\_route\_role | v0.11.0 |
-| mgmt\_firewall | trustgrid\_mgmt\_firewall | v0.11.0 |
-| gateway\_firewall | trustgrid\_gateway\_firewall | v0.11.0 |
-| gateway\_node\_a | trustgrid\_single\_node | v0.11.0 |
-| gateway\_node\_b | trustgrid\_single\_node | v0.11.0 |
+| node\_a\_sa | trustgrid\_node\_service\_account | v0.10.0 |
+| node\_b\_sa | trustgrid\_node\_service\_account | v0.10.0 |
+| cluster\_route\_role | trustgrid\_cluster\_route\_role | v0.10.0 |
+| mgmt\_firewall | trustgrid\_mgmt\_firewall | v0.10.0 |
+| gateway\_firewall | trustgrid\_gateway\_firewall | v0.10.0 |
+| gateway\_node\_a | trustgrid\_single\_node | v0.10.0 |
+| gateway\_node\_b | trustgrid\_single\_node | v0.10.0 |
 
 ## Resources
 

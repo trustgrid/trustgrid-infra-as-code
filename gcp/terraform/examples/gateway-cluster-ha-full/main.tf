@@ -27,11 +27,13 @@
 ## Network resources (VPC, subnets) are consumed from existing infrastructure.
 ## This example does NOT create subnets or VPCs.
 ##
-## Sequencing: tg_license → data.tg_node (waits for online) → tg_cluster_member
-## + tg_node_cluster_config + tg_network_config. All Trustgrid config resources
-## depend on the node being online, which is gated by data.tg_node.timeout.
+## Sequencing: tg_license → data.tg_node (waits for online) → tg_cluster.main
+## → tg_cluster_member + tg_node_cluster_config + tg_network_config. All
+## Trustgrid config resources depend on the node being online, which is gated
+## by data.tg_node.timeout.
 
 terraform {
+  required_version = ">= 1.3"
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -77,7 +79,7 @@ resource "tg_license" "node_b" {
 ## single binding grants both nodes the route-manager role.
 
 module "node_a_sa" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.10.0"
 
   account_id   = "${var.cluster_name}-gw-a-sa"
   display_name = "Trustgrid Gateway SA — ${var.cluster_name}-gw-a"
@@ -85,7 +87,7 @@ module "node_a_sa" {
 }
 
 module "node_b_sa" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.10.0"
 
   account_id   = "${var.cluster_name}-gw-b-sa"
   display_name = "Trustgrid Gateway SA — ${var.cluster_name}-gw-b"
@@ -99,7 +101,7 @@ module "node_b_sa" {
 ## the IAM binding must be project-level.
 
 module "cluster_route_role" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_cluster_route_role?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_cluster_route_role?ref=v0.10.0"
 
   project = var.project
 
@@ -118,7 +120,7 @@ module "cluster_route_role" {
 ##   3. heartbeat rule (below) — TCP 9000 between data subnet CIDRs for HA
 
 module "mgmt_firewall" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_mgmt_firewall?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_mgmt_firewall?ref=v0.10.0"
 
   name_prefix = var.cluster_name
   network     = var.management_vpc_network
@@ -126,7 +128,7 @@ module "mgmt_firewall" {
 }
 
 module "gateway_firewall" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_gateway_firewall?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_gateway_firewall?ref=v0.10.0"
 
   name_prefix = var.cluster_name
   network     = var.management_vpc_network
@@ -173,7 +175,7 @@ resource "google_compute_firewall" "heartbeat" {
 ## detects it on first boot, registers the node, and connects to the control plane.
 
 module "gateway_node_a" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.10.0"
 
   ## Identity
   name = "${var.cluster_name}-gw-a"
@@ -204,7 +206,7 @@ module "gateway_node_a" {
 ## Edge nodes can be configured to connect to either gateway IP.
 
 module "gateway_node_b" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.10.0"
 
   ## Identity
   name = "${var.cluster_name}-gw-b"
@@ -274,14 +276,20 @@ resource "tg_cluster_member" "node_a" {
   cluster_fqdn = tg_cluster.main.fqdn
   node_id      = data.tg_node.node_a.id
 
-  depends_on = [data.tg_node.node_a]
+  depends_on = [
+    tg_cluster.main,
+    data.tg_node.node_a,
+  ]
 }
 
 resource "tg_cluster_member" "node_b" {
   cluster_fqdn = tg_cluster.main.fqdn
   node_id      = data.tg_node.node_b.id
 
-  depends_on = [data.tg_node.node_b]
+  depends_on = [
+    tg_cluster.main,
+    data.tg_node.node_b,
+  ]
 }
 
 ## ─── Interface name discovery ──────────────────────────────────────────────────
