@@ -32,7 +32,7 @@
         "All module source refs use semver tags (?ref=vX.Y.Z), never branch refs"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "Implementation must sequence resource dependencies to avoid API race conditions."
     },
     {

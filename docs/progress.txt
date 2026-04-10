@@ -1,5 +1,11 @@
 ## Codebase Patterns
-- GCP examples use relative `source = "../../modules/…"` paths so `terraform validate` works in the repo without a tagged release; README documents switching to pinned GitHub source for external deployments (v0.10.0 is latest tag as of 2026-04-10)
+- GCP examples use relative `source = "../../modules/…"` paths so `terraform validate` works in the repo without a tagged release; README documents switching to pinned GitHub source for external deployments (v0.11.0 is the planned release tag)
+- trustgrid/tg provider config: uses `api_host`, `api_key_id`, `api_key_secret`, `org_id` fields (NOT `host`/`org`) — credentials supplied via TG_API_KEY_ID and TG_API_KEY_SECRET env vars
+- tg_license resource outputs: `license` (JWT), `uid`, `fqdn`, `id` — pass `license` to compute module, `uid` to data.tg_node for readiness gate
+- tg_network_config: use `node_id` for per-node config, `cluster_fqdn` for cluster-level config — NOT `node`/`cluster` field names
+- tg_node_cluster_config: uses `node_id` field (not `node`) — fields: node_id, host, port, enabled (optional: status_host, status_port)
+- tg_cluster_member: uses `cluster_fqdn` and `node_id` fields
+- data.tg_node: accepts `uid` (from tg_license.*.uid), `timeout` (seconds), and `fqdn` — blocks until node is online
 - Stale `.terraform.lock.hcl` files with non-normalized constraint format (`>= 6.0` vs `>= 6.0.0`) block `terraform init` — delete and re-init when switching module sources from GitHub refs to relative paths
 - HA gateway heartbeat firewall (TCP 9000) is a direct `google_compute_firewall` resource in the example, NOT a module — source_ranges are the two data subnet CIDRs, target is the gateway network tag
 - Network firewall modules live under `gcp/terraform/modules/network/`; compute modules under `gcp/terraform/modules/compute/`; IAM modules under `gcp/terraform/modules/iam/`
@@ -262,4 +268,50 @@
   - HA heartbeat firewall TCP/9000 is a direct `google_compute_firewall` resource in the example (not a module) — source_ranges must be the two data subnet CIDRs, target must be the gateway network tag applied to both nodes, network must be `data_vpc_network` (not management VPC)
   - When making `tg_license` optional (for manual mode), remove the `validation` block that enforces non-empty — use `default = null` instead, and let the compute module validate that license is non-null only when `registration_mode = "auto"`
   - Cross-variable ternary wiring pattern: `license = var.registration_mode == "auto" ? var.tg_license : null` is the clean way to conditionally pass sensitive values in manual/auto mode split
+---
+
+## 2026-04-10 - US-002 - Full GCP + Trustgrid HA automation example
+- What was implemented
+  - Created `gcp/terraform/examples/gateway-cluster-ha-full/`: full automation example using both hashicorp/google and trustgrid/tg providers
+    - `tg_license` resource per node (`node_a`, `node_b`) — creates node in Trustgrid control plane, returns JWT license, uid, fqdn
+    - Two `trustgrid_node_service_account` modules (per-node dedicated GCP SAs)
+    - `trustgrid_cluster_route_role` module — binds BOTH SA emails to route-manager custom IAM role
+    - `trustgrid_mgmt_firewall` + `trustgrid_gateway_firewall` modules (shared tag `trustgrid-gateway`)
+    - `google_compute_firewall.heartbeat` resource — TCP `heartbeat_port` (default 9000) between data subnet CIDRs
+    - Two `trustgrid_single_node` modules — `registration_mode = "auto"`, license from `tg_license.*.license`
+    - `tg_cluster.main` — Trustgrid cluster object
+    - `data.tg_node.node_a` + `data.tg_node.node_b` — online readiness gate with `uid` from `tg_license` and configurable `tg_node_timeout` (default 300s)
+    - `tg_cluster_member` × 2 — joins both nodes to cluster via `cluster_fqdn` + `node_id`
+    - `data.tg_node_iface_names` × 2 — discovers OS-level NIC names per node
+    - `tg_node_cluster_config` × 2 — sets gossip `host` (data NIC IP) and `port` per node, `enabled = true`
+    - `tg_network_config` × 2 (per node) — `dhcp = true` on LAN NIC, static route to opposite node's data subnet via `cidrhost(..., 1)` for heartbeat path
+    - `tg_network_config` × 1 (cluster) — `cluster_fqdn = tg_cluster.main.fqdn`, `cloud_route` for `var.cluster_route_cidr` on LAN interface
+    - Variables: project, region, cluster_name, zone_a/b (with cross-var validation), tg_api_host (default), tg_org_id, tg_registration_key (sensitive), tg_node_timeout (min 60), management_vpc_network, data_vpc_network, management_subnetwork_a/b, data_subnetwork_a/b, node_a/b_data_subnet_cidr, cluster_route_cidr, heartbeat_port (1-65535, default 9000)
+    - Outputs: gateway_a/b_external_ip, gateway_a/b_internal_ip, gateway_a/b_data_ip, gateway_a/b_name, cluster_fqdn, node_a/b_fqdn, node_a/b_uid, SA emails, cluster_route_role_id, heartbeat_firewall_name
+    - README: full docs including prerequisites, architecture diagram, what-gets-created tables, 1-pass apply sequencing, usage walkthrough, variables/outputs tables, security notes, HA route-failover docs, TF_DOCS markers
+  - Existing `gateway-cluster-ha` example preserved unmodified
+  - Used temporary `override.tf` for validation (not committed); deleted after validate passes
+- Files changed
+  - `gcp/terraform/examples/gateway-cluster-ha-full/main.tf` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha-full/variables.tf` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha-full/outputs.tf` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha-full/README.md` (new)
+  - `gcp/terraform/examples/gateway-cluster-ha-full/.terraform.lock.hcl` (new — both google + tg providers)
+  - `docs/prd.json` (US-002 passes: true)
+  - `docs/progress.txt`
+- Validation results
+  - `terraform fmt -check -recursive gcp/` → PASS (no output)
+  - `terraform init -backend=false` (with override.tf for local modules + tg provider) → PASS (google v7.27.0, tg v2.2.0 installed)
+  - `terraform validate` → PASS ("The configuration is valid.")
+  - override.tf deleted before commit
+- **Learnings for future iterations:**
+  - trustgrid/tg provider v2.2.0 provider config uses `api_host`, `api_key_id`, `api_key_secret`, `org_id` — NOT `host`/`org` as sometimes referenced in older docs
+  - tg_license: `name` is required (node name), outputs `license` (JWT), `uid`, `fqdn`. Pass `license` to compute module, `uid` to data.tg_node
+  - data.tg_node: use `uid` from tg_license.*.uid + `timeout` var; add `depends_on = [module.gateway_node_*]` to ensure GCP instance exists before waiting
+  - tg_cluster_member uses `cluster_fqdn` (not `cluster_id`) and `node_id` (the data.tg_node.*.id)
+  - tg_node_cluster_config uses `node_id` (not `node`); required: `node_id`; optional: `host`, `port`, `enabled`
+  - tg_network_config: `node_id` for per-node, `cluster_fqdn` for cluster-level; interface block requires `nic` (OS name from tg_node_iface_names)
+  - tg_node_iface_names: `interfaces[0]` = management (nic0), `interfaces[1]` = data/LAN (nic1); use `.os_name` for NIC name in tg_network_config
+  - cidrhost(cidr, 1) is the idiomatic way to compute the gateway/next-hop from a CIDR block in Terraform
+  - The trustgrid/tg provider CAN be installed and `terraform validate` passes without real API credentials — validation is purely schema-based
 ---
