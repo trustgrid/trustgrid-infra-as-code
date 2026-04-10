@@ -1,5 +1,7 @@
 ## Codebase Patterns
-- GCP examples use relative `source = "../../modules/…"` paths so `terraform validate` works in the repo without a tagged release; README documents switching to pinned GitHub source for external deployments
+- GCP examples use relative `source = "../../modules/…"` paths so `terraform validate` works in the repo without a tagged release; README documents switching to pinned GitHub source for external deployments (v0.10.0 is latest tag as of 2026-04-10)
+- Stale `.terraform.lock.hcl` files with non-normalized constraint format (`>= 6.0` vs `>= 6.0.0`) block `terraform init` — delete and re-init when switching module sources from GitHub refs to relative paths
+- HA gateway heartbeat firewall (TCP 9000) is a direct `google_compute_firewall` resource in the example, NOT a module — source_ranges are the two data subnet CIDRs, target is the gateway network tag
 - Network firewall modules live under `gcp/terraform/modules/network/`; compute modules under `gcp/terraform/modules/compute/`; IAM modules under `gcp/terraform/modules/iam/`
 - IAM service account module outputs a `member` output pre-formatted as `serviceAccount:<email>` for direct use in `google_project_iam_binding.members`
 - `google_project_iam_binding` is AUTHORITATIVE for its role — use it when you own the full membership of a custom role; use `google_project_iam_member` for non-authoritative (additive) bindings
@@ -214,4 +216,50 @@
   - Port values in GCP firewall `allow.ports` must be quoted strings, even when interpolating a number variable: `["${var.gateway_port}"]`
   - `direction = "EGRESS"` uses `destination_ranges`; `direction = "INGRESS"` uses `source_ranges` — do not mix these attributes
   - Gateway nodes need BOTH the `trustgrid_mgmt_firewall` (egress) AND `trustgrid_gateway_firewall` (ingress) modules; edge nodes only need `trustgrid_mgmt_firewall`
+---
+
+## 2026-04-10 - US-001 - Infra-only GCP HA example (manual registration default)
+- What was implemented
+  - Rewrote `gcp/terraform/examples/gateway-cluster-ha/` as an infra-only, manual-default example:
+    - Removed all `tg_license`/`tg_registration_key` hard requirements — both are now `default = null`, not required for manual mode
+    - Added `registration_mode` variable with `default = "manual"` and validation `["manual","auto"]`
+    - Wired both gateway node modules: `registration_mode = var.registration_mode`, `license = var.registration_mode == "auto" ? var.tg_license : null`, `registration_key = var.registration_mode == "auto" ? var.tg_registration_key : null`
+    - Added direct `google_compute_firewall.heartbeat` resource for TCP/9000 HA heartbeat between data subnet CIDRs on `data_vpc_network`
+    - Added three new variables: `registration_mode` (default "manual"), `data_vpc_network` (data VPC for heartbeat rule), `node_a_data_subnet_cidr` + `node_b_data_subnet_cidr` (heartbeat source ranges)
+    - Added `heartbeat_firewall_name` output
+    - All module sources switched to relative paths `../../modules/…` (consistent with Codebase Patterns)
+    - README completely rewritten: labeled as infra-only/manual-default, "when to use" decision table, manual usage section, "switching to auto registration" section, heartbeat firewall documentation
+  - Fixed review.md blocking issue #1: switched all three examples from v0.11.0 GitHub refs to relative module paths (v0.11.0 tag does not exist; latest is v0.10.0)
+  - Fixed review.md blocking issue #2: removed scope creep note — Spot VM feature was already in the compute module (not in examples), no example changes needed for that
+  - Updated READMEs for `single-node-manual` and `single-node-auto` to reference v0.10.0 and relative paths
+  - Deleted stale `.terraform.lock.hcl` files in all three examples and regenerated fresh after switching to relative module sources
+  - Deleted `docs/review.md` after addressing all blocking issues
+- Files changed
+  - `gcp/terraform/examples/gateway-cluster-ha/main.tf` (rewritten)
+  - `gcp/terraform/examples/gateway-cluster-ha/variables.tf` (rewritten)
+  - `gcp/terraform/examples/gateway-cluster-ha/outputs.tf` (updated: added heartbeat_firewall_name output)
+  - `gcp/terraform/examples/gateway-cluster-ha/README.md` (rewritten: infra-only label, decision table, auto-registration guide, heartbeat docs)
+  - `gcp/terraform/examples/gateway-cluster-ha/.terraform.lock.hcl` (regenerated)
+  - `gcp/terraform/examples/single-node-manual/main.tf` (module sources: v0.11.0 refs → relative paths)
+  - `gcp/terraform/examples/single-node-manual/README.md` (module source ref: v0.11.0 → v0.10.0)
+  - `gcp/terraform/examples/single-node-manual/.terraform.lock.hcl` (regenerated)
+  - `gcp/terraform/examples/single-node-auto/main.tf` (module sources: v0.11.0 refs → relative paths)
+  - `gcp/terraform/examples/single-node-auto/README.md` (module source ref: v0.11.0 → v0.10.0)
+  - `gcp/terraform/examples/single-node-auto/.terraform.lock.hcl` (regenerated)
+  - `docs/prd.json` (US-001 passes: true)
+  - `docs/review.md` (deleted)
+  - `docs/progress.txt`
+- Validation results
+  - `terraform fmt -check -recursive gcp/` → PASS (no output)
+  - `terraform init -backend=false` gateway-cluster-ha → PASS (hashicorp/google v7.27.0 installed)
+  - `terraform validate` gateway-cluster-ha → PASS ("The configuration is valid.")
+  - `terraform init -backend=false` single-node-manual → PASS
+  - `terraform validate` single-node-manual → PASS
+  - `terraform init -backend=false` single-node-auto → PASS
+  - `terraform validate` single-node-auto → PASS
+- **Learnings for future iterations:**
+  - `.terraform.lock.hcl` files generated from GitHub module refs use non-normalized constraint strings (`>= 6.0` not `>= 6.0.0`). Switching to relative local paths triggers a re-normalization on fresh init. Always delete stale lock files when changing module source types.
+  - HA heartbeat firewall TCP/9000 is a direct `google_compute_firewall` resource in the example (not a module) — source_ranges must be the two data subnet CIDRs, target must be the gateway network tag applied to both nodes, network must be `data_vpc_network` (not management VPC)
+  - When making `tg_license` optional (for manual mode), remove the `validation` block that enforces non-empty — use `default = null` instead, and let the compute module validate that license is non-null only when `registration_mode = "auto"`
+  - Cross-variable ternary wiring pattern: `license = var.registration_mode == "auto" ? var.tg_license : null` is the clean way to conditionally pass sensitive values in manual/auto mode split
 ---

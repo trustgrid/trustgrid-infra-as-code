@@ -1,98 +1,130 @@
-# PRD: Fix GCP Provider Constraint Blocking 7.x Consumers
+# PRD: Split GCP Gateway HA into Infra-Only and Full Automation Examples
 
 ## Introduction
 
-New GCP Terraform modules currently pin the Google provider with `~> 6.0`, which enforces an upper bound `< 7.0.0`. Consumers already standardized on provider 7.x cannot initialize/resolve providers when using these modules.
+Create two distinct GCP HA examples for Trustgrid so users can choose between:
 
-## Root Cause
+1. **Infra-only deployment** for organizations without Trustgrid API access (Google provider only, manual registration default).
+2. **Full automation deployment** for organizations with Trustgrid API access (Google + Trustgrid providers, full cluster/network configuration automation).
 
-The `required_providers` blocks in all new GCP module `main.tf` files use `version = "~> 6.0"` (line 5 in each file), which is too restrictive for intended compatibility. The module contract intends to support 6.x and 7.x+, but `~> 6.0` mathematically excludes 7.x.
+This removes ambiguity in the current `gcp/terraform/examples/gateway-cluster-ha` example, which is infrastructure-focused but currently tied to automatic registration inputs.
 
-Defective declarations:
-- `gcp/terraform/modules/compute/trustgrid_single_node/main.tf:5`
-- `gcp/terraform/modules/network/trustgrid_mgmt_firewall/main.tf:5`
-- `gcp/terraform/modules/network/trustgrid_gateway_firewall/main.tf:5`
-- `gcp/terraform/modules/iam/trustgrid_node_service_account/main.tf:5`
-- `gcp/terraform/modules/iam/trustgrid_cluster_route_role/main.tf:5`
+## Problem Statement
 
-Correct declaration in each module:
-- `version = ">= 6.0"`
+Current GCP HA example behavior and messaging do not clearly separate two real user journeys:
 
-## Evidence
+- users who can deploy infra but must register/configure in portal manually, and
+- users who can fully automate Trustgrid cluster provisioning through provider resources.
 
-- **Logs:** Not provided.
-- **Sentry:** Not applicable.
-- **Code:** All five affected module `required_providers.google.version` entries are `~> 6.0`, creating upper-bound exclusion of 7.x.
-- **Git history:** Not required to confirm this defect; the bug is directly observable in current module definitions.
-- **Docs consistency drift:** Documentation still states GCP uses `~> 6.0`, including:
-  - `AGENTS.md:116`
-  - `gcp/terraform/modules/compute/trustgrid_single_node/README.md:512,518`
-  - `gcp/terraform/modules/network/trustgrid_mgmt_firewall/README.md:116,122`
-  - `gcp/terraform/modules/network/trustgrid_gateway_firewall/README.md:105,111`
-  - `gcp/terraform/modules/iam/trustgrid_node_service_account/README.md:109,115`
-  - `gcp/terraform/modules/iam/trustgrid_cluster_route_role/README.md:167,173`
+Without a split, consumers either over-assume automation capability or lack a concrete reference for full end-to-end automation.
 
 ## Goals
 
-- Reproduce the provider-resolution failure in a test/fixture flow
-- Fix the provider constraint root cause in all affected modules
-- Prevent regression by aligning docs and verification steps
+- Provide a **clean infra-only HA example** with no Trustgrid provider dependency.
+- Provide a **full HA automation example** that includes Trustgrid resources and ordering/online readiness gates.
+- Keep all module references pinned to semver tags (never branch refs).
+- Preserve Google provider constraints at `>= 6.0` where declared.
+
+## Proposed Example Layout
+
+- Keep and reshape existing path:
+  - `gcp/terraform/examples/gateway-cluster-ha` → infra-only (manual default)
+- Add second example directory:
+  - `gcp/terraform/examples/gateway-cluster-ha-full`
 
 ## User Stories
 
-### US-001: Reproduce the defect in a test
+### US-001: Infra-only HA example for non-API users
 
-**Description:** As a developer, I need a failing reproduction that shows current modules reject Google provider 7.x so I can verify the fix works.
-
-**Acceptance Criteria:**
-
-- [ ] Add/adjust a Terraform fixture or validation check that attempts to resolve with Google provider 7.x and fails before the fix due to module upper bound
-- [ ] Test/check name clearly indicates provider-constraint incompatibility scenario
-- [ ] Reproduction uses realistic module consumption path (module source + required providers)
-- [ ] Typecheck passes
-
-### US-002: Fix the root cause
-
-**Description:** As a developer, I need to update affected GCP module provider constraints so modules support both 6.x and 7.x+ consumers.
+**Description:** As a platform team without Trustgrid API access, I want a GCP HA example that deploys all required infrastructure using only Google resources so I can register and configure cluster behavior manually.
 
 **Acceptance Criteria:**
 
-- [ ] In each affected module `main.tf`, change `required_providers.google.version` from `"~> 6.0"` to `">= 6.0"`
-- [ ] No unrelated module behavior is changed
-- [ ] The reproduction from US-001 passes after the change
-- [ ] Typecheck passes
+- [ ] `gateway-cluster-ha` requires only the `hashicorp/google` provider (`>= 6.0`)
+- [ ] Example deploys two gateway nodes across distinct zones with static external IPs
+- [ ] Example includes IAM route role and firewall coverage required for HA, including heartbeat TCP/9000
+- [ ] Default registration mode is manual and does not require license/reg key variables
+- [ ] README documents exact steps to switch to automatic registration when a license key becomes available
+- [ ] All module `source` refs are pinned to semver tags (`?ref=vX.Y.Z`)
 
-### US-003: Add regression and docs consistency coverage
+### US-002: Full HA automation example with Trustgrid provider
 
-**Description:** As a developer, I need documentation and regression coverage updated so the provider compatibility contract remains accurate.
+**Description:** As a team with Trustgrid API access, I want a full example that automates infrastructure and Trustgrid cluster/network configuration end-to-end.
 
 **Acceptance Criteria:**
 
-- [ ] Update documentation that currently claims GCP uses `~> 6.0` to reflect `>= 6.0`
-- [ ] Regenerate/refresh module README TF docs sections if required by repository doc workflow
-- [ ] Validate touched modules/examples with Terraform validation workflow
-- [ ] Typecheck passes
+- [ ] New `gateway-cluster-ha-full` example declares both Google and Trustgrid providers
+- [ ] Example provisions required Trustgrid resources: `tg_license` per node, `tg_cluster`, `tg_cluster_member`, `tg_node` online gate with timeout, `tg_node_cluster_config`, `tg_node_iface_names`, `tg_network_config`
+- [ ] `tg_network_config` covers node LAN route glue and cluster cloud_route behavior
+- [ ] GCP heartbeat firewall TCP/9000 is present and documented for HA cluster communications
+- [ ] Resource graph includes dependency ordering sufficient to avoid race conditions between node readiness and Trustgrid config application
+- [ ] All module refs remain semver pinned
+
+### US-003: Documentation and migration clarity
+
+**Description:** As a maintainer, I need clear docs so users can select the right example path and understand behavior differences.
+
+**Acceptance Criteria:**
+
+- [ ] `gateway-cluster-ha/README.md` explicitly labels the example as infra-only/manual-default
+- [ ] README includes a migration section comparing infra-only vs full automation workflows
+- [ ] New full example README includes prerequisites for Trustgrid API credentials and expected post-apply validation checks
+- [ ] Any references to old single-path HA guidance are updated to point to both examples
 
 ## Functional Requirements
 
-- FR-1: All affected GCP modules must declare `required_providers.google.version = ">= 6.0"`.
-- FR-2: Module consumption with Google provider 7.x must no longer be blocked by module version constraints.
-- FR-3: Repository docs must not claim a conflicting GCP provider constraint.
+- FR-1: Infra-only HA example must be runnable with Google provider only.
+- FR-2: Infra-only HA example must default to manual registration.
+- FR-3: Full HA example must automate Trustgrid cluster and network configuration resources listed in US-002.
+- FR-4: Both examples must include HA-critical firewall coverage including TCP/9000 heartbeat.
+- FR-5: All example module sources must be pinned to semver release tags.
 
 ## Non-Goals
 
-- Do NOT refactor unrelated Terraform resources or variables
-- Do NOT change AWS/Azure/ThousandEyes provider policies
-- Do NOT add new infrastructure features
+- Do not introduce new reusable modules unless implementation uncovers unavoidable gaps.
+- Do not change non-GCP examples.
+- Do not use branch-based module refs in merged example code or README snippets.
 
-## Technical Considerations
+## Proposed File-Level Changes
 
-- **Files to modify (root cause):**
-  - `gcp/terraform/modules/compute/trustgrid_single_node/main.tf`
-  - `gcp/terraform/modules/network/trustgrid_mgmt_firewall/main.tf`
-  - `gcp/terraform/modules/network/trustgrid_gateway_firewall/main.tf`
-  - `gcp/terraform/modules/iam/trustgrid_node_service_account/main.tf`
-  - `gcp/terraform/modules/iam/trustgrid_cluster_route_role/main.tf`
-- **Docs consistency files to update where applicable:** module READMEs listed in Evidence + `AGENTS.md` (GCP provider guidance)
-- **Validation commands:** run `terraform init -backend=false && terraform validate` in each touched module/example directory; verify provider resolution logic in reproduction fixture/check
-- **Risk:** if provider 7 introduces breaking schema/API changes, this change only removes artificial version ceiling and does not guarantee all downstream configurations are semantically unchanged
+### Update existing infra-focused HA example
+
+- `gcp/terraform/examples/gateway-cluster-ha/main.tf`
+  - convert default registration path to manual (remove required license/reg key in default flow)
+  - add heartbeat firewall rule coverage for TCP/9000 if not already included
+- `gcp/terraform/examples/gateway-cluster-ha/variables.tf`
+  - make registration inputs optional or remove from infra-only default surface
+  - retain zone A/B cross-variable validation
+- `gcp/terraform/examples/gateway-cluster-ha/outputs.tf`
+  - keep infra outputs focused on node IPs, SA emails, route role outputs
+- `gcp/terraform/examples/gateway-cluster-ha/README.md`
+  - rewrite as infra-only/manual-default guide
+  - add section: “Enable auto registration when license key is available”
+
+### Add full automation HA example
+
+- `gcp/terraform/examples/gateway-cluster-ha-full/main.tf` (new)
+- `gcp/terraform/examples/gateway-cluster-ha-full/variables.tf` (new)
+- `gcp/terraform/examples/gateway-cluster-ha-full/outputs.tf` (new)
+- `gcp/terraform/examples/gateway-cluster-ha-full/README.md` (new)
+
+### Optional cross-reference updates
+
+- `gcp/terraform/examples/*/README.md` references to HA example path(s) as needed.
+
+## Risks and Migration Notes
+
+- **Breaking expectation risk:** Existing users of `gateway-cluster-ha` may expect auto registration inputs; mitigate by documenting default-mode change and optional auto toggle path.
+- **Provider/API sequencing risk:** Full automation adds eventual-consistency/race concerns between VM bootstrap, node online status, and Trustgrid config APIs; mitigate with explicit readiness gates and timeouts.
+- **Permission scope risk:** Full example requires both GCP IAM and Trustgrid API credentials; README must include least-privilege guidance and failure symptoms.
+- **Release hygiene risk:** Accidentally pinning module sources to feature branch refs; enforce semver refs only.
+- **Route role dependency risk:** Ensure example continues to rely on fixed role permissions including `compute.networks.updatePolicy` already added in module.
+
+## Validation Plan
+
+- Run in each touched example directory:
+  - `terraform init`
+  - `terraform fmt -recursive`
+  - `terraform validate`
+  - `terraform plan` (with appropriate credentials)
+- Verify docs and snippets contain only semver `?ref=vX.Y.Z` module refs.

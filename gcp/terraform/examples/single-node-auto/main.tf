@@ -36,7 +36,7 @@ provider "google" {
 ## attach the cluster route role.
 
 module "node_sa" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/iam/trustgrid_node_service_account?ref=v0.11.0"
+  source = "../../modules/iam/trustgrid_node_service_account"
 
   account_id   = "${var.name}-sa"
   display_name = "Trustgrid Node SA — ${var.name}"
@@ -50,7 +50,7 @@ module "node_sa" {
 ## network tag applied to the instance below.
 
 module "mgmt_firewall" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/network/trustgrid_mgmt_firewall?ref=v0.11.0"
+  source = "../../modules/network/trustgrid_mgmt_firewall"
 
   name_prefix = var.name
   network     = var.management_vpc_network
@@ -71,7 +71,7 @@ module "mgmt_firewall" {
 ## regional static external IP. This IP is preserved across redeployments.
 
 module "node" {
-  source = "github.com/trustgrid/trustgrid-infra-as-code//gcp/terraform/modules/compute/trustgrid_single_node?ref=v0.11.0"
+  source = "../../modules/compute/trustgrid_single_node"
 
   ## Identity
   name = var.name

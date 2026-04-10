@@ -73,3 +73,10 @@ output "cluster_bound_members" {
   description = "IAM members (serviceAccount:<email>) bound to the cluster route-manager role."
   value       = module.cluster_route_role.bound_members
 }
+
+## ─── Firewall outputs ──────────────────────────────────────────────────────────
+
+output "heartbeat_firewall_name" {
+  description = "Name of the Google Compute firewall rule that permits HA cluster heartbeat traffic (TCP 9000) between gateway node data interfaces."
+  value       = google_compute_firewall.heartbeat.name
+}
