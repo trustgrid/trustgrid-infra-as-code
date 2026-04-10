@@ -151,6 +151,10 @@ of a single large `main.tf`.
 Every module README must include the TF_DOCS marker pair — never hand-edit between them:
 `<!-- BEGIN_TF_DOCS -->` … `<!-- END_TF_DOCS -->`
 
+For examples, keep narrative content above the markers and regenerate reference
+tables with:
+`terraform-docs markdown table --output-file README.md .`
+
 ### Shell scripts and `.tpl` bootstrap files
 
 Every shell script and `*.sh.tpl` template must open with `#!/bin/bash` followed by
@@ -161,6 +165,12 @@ Every shell script and `*.sh.tpl` template must open with `#!/bin/bash` followed
 
 - Use `##` as section headers in `.tf` files; `#` for inline notes.
 - Explain *why*, not *what*. Never commit `TODO` or debug comments.
+
+### Repository hygiene
+
+- Do not commit agent working artifacts under `docs/` such as `docs/prd.*`,
+  `docs/progress.txt`, `docs/review.md`, or `docs/memory/*`.
+- Capture durable guidance in `AGENTS.md` instead of ad-hoc memory files.
 
 ---
 
