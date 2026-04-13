@@ -9,10 +9,6 @@
 ##   terraform validate  → exits 1 (FAILS).  This is a single-variable constraint
 ##                         evaluated at validate-time.
 ##   No need for terraform plan for this particular negative test.
-##
-## NOTE: This fixture previously tested "n4 + pd-balanced in manual mode" which
-## relied on the now-removed n4/c4 cross-variable hyperdisk constraint. n4 is now
-## entirely rejected at the machine_type variable validation stage.
 
 terraform {
   required_providers {

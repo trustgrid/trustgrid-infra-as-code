@@ -9,10 +9,7 @@
 ##   terraform validate  → exits 1 (FAILS).  This is a single-variable constraint
 ##                         on boot_disk_type (allowed values list) and is evaluated
 ##                         at validate-time, not deferred to plan-time.
-##
-## NOTE: Previously this fixture relied on a cross-variable constraint (e2 + hyperdisk
-## rejection). Hyperdisk support has been removed entirely; hyperdisk-* disk types are
-## now rejected by the boot_disk_type single-variable validation for ALL machine types.
+
 
 terraform {
   required_providers {

@@ -190,24 +190,6 @@ Every shell script and `*.sh.tpl` template must open with `#!/bin/bash` followed
 
 ---
 
-## Cursor / Copilot Rules
-
-At the time of writing, **none of the following AI instruction files exist** in this repo:
-`.cursor/rules`, `.cursorrules`, `.github/copilot-instructions.md`.
-
-Use AGENTS.md as your primary instruction source until those files are created. If added
-later, they take precedence over this document for tool-specific behaviour.
-
-**Recommended rules to encode if you create those files:**
-
-- Auto-apply `terraform fmt` on save for `.tf` files.
-- Never suggest `any` or bare `list` as a variable type.
-- Never suggest inline `provider` blocks inside modules.
-- Suggest `validation` blocks for string variables with a fixed set of valid values.
-- Enforce `#!/bin/bash\nset -euo pipefail` at the top of every shell/bootstrap file.
-
----
-
 ## Observed Conventions Summary
 
 These patterns are consistent across the entire codebase — always follow them:

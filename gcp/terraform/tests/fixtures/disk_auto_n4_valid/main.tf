@@ -3,11 +3,6 @@
 ##   The effective_disk_type local will resolve to "pd-balanced" at plan time.
 ##   No boot_disk_type override is needed or provided.
 ##
-## NOTE: This fixture was previously named disk_auto_n4_valid and tested the
-## (now-removed) n4 machine family. n4/c4 and hyperdisk support has been removed.
-## The fixture now validates that a supported non-e2 family (n2) also works
-## correctly in auto mode.
-##
 ## Expected: terraform validate exits 0.
 
 terraform {
