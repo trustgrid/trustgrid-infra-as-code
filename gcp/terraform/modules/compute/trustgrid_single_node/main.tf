@@ -1,0 +1,153 @@
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 6.0"
+    }
+  }
+}
+
+## Resolve the boot disk image.
+## Priority: explicit image name > family lookup (project + family).
+data "google_compute_image" "node_image" {
+  count   = var.image_name == null ? 1 : 0
+  project = var.image_project
+  family  = var.image_family
+}
+
+## In direct_static_ip mode this module creates and owns a regional static
+## external IP. Owning the address resource independently of the instance means
+## the IP is preserved across instance replacement (terraform destroy + apply or
+## taint), satisfying the redeploy IP-stability objective.
+resource "google_compute_address" "management_external" {
+  count = var.public_exposure_mode == "direct_static_ip" ? 1 : 0
+
+  name         = "${var.name}-mgmt-ext"
+  address_type = "EXTERNAL"
+  ## Region is derived from the zone by trimming the zone suffix (e.g.
+  ## "us-central1-a" → "us-central1"). GCP static addresses are regional.
+  region      = join("-", slice(split("-", var.zone), 0, length(split("-", var.zone)) - 1))
+  description = "Module-managed static external IP for Trustgrid node ${var.name} management interface. Preserved across instance redeployment."
+}
+
+locals {
+  ## Use the explicitly pinned image name when supplied; fall back to the
+  ## family-resolved self_link so Terraform never accidentally re-resolves
+  ## to a newer image on re-apply (lifecycle ignore_changes = all handles
+  ## the instance, but we keep the reference deterministic at plan time).
+  boot_image = var.image_name != null ? var.image_name : data.google_compute_image.node_image[0].self_link
+
+  ## Resolve the effective external IP for the management interface based on
+  ## the chosen public_exposure_mode:
+  ##   direct_static_ip → address of the module-created resource
+  ##   byo_public_ip    → caller-supplied address string
+  ##   private_only     → null (no access_config block)
+  management_external_ip = (
+    var.public_exposure_mode == "direct_static_ip" ? google_compute_address.management_external[0].address :
+    var.public_exposure_mode == "byo_public_ip" ? var.management_external_ip_address :
+    null
+  )
+
+  ## Derive the machine family prefix from machine_type so that auto mode can
+  ## select an appropriate disk type without the caller specifying one.
+  ## Machine types follow the pattern "<family>-<series>-<size>" (e.g. e2-standard-4,
+  ## n2-standard-8). split("-")[0] reliably extracts the family.
+  machine_family = split("-", var.machine_type)[0]
+
+  ## Effective boot disk type.
+  ##
+  ## In 'auto' mode all supported machine families (e2, n2, n2d, t2d) use pd-balanced.
+  ## pd-balanced is the recommended default for all supported families.
+  ##
+  ## In 'manual' mode boot_disk_type is passed through unchanged.
+  effective_disk_type = var.disk_type_mode == "manual" ? var.boot_disk_type : "pd-balanced"
+
+}
+
+## Compute instance
+resource "google_compute_instance" "node" {
+  name         = var.name
+  machine_type = var.machine_type
+  zone         = var.zone
+
+  ## Trustgrid nodes route traffic between interfaces — IP forwarding required.
+  can_ip_forward = true
+
+  tags = var.network_tags
+
+  ## Management / WAN interface (nic0).
+  ## An access_config block is included for direct_static_ip and byo_public_ip
+  ## modes. For private_only mode no access_config is added, leaving nic0
+  ## without an external IP.
+  network_interface {
+    subnetwork = var.management_subnetwork
+
+    dynamic "access_config" {
+      for_each = local.management_external_ip != null ? [local.management_external_ip] : []
+      content {
+        nat_ip = access_config.value
+      }
+    }
+  }
+
+  ## Data / LAN interface (nic1)
+  network_interface {
+    subnetwork = var.data_subnetwork
+  }
+
+  boot_disk {
+    initialize_params {
+      image = local.boot_image
+      size  = var.boot_disk_size_gb
+      type  = local.effective_disk_type
+    }
+  }
+
+  service_account {
+    email  = var.service_account_email
+    scopes = ["cloud-platform"]
+  }
+
+  metadata = merge(
+    # Caller-supplied metadata is merged first so that all module-owned keys
+    # below take precedence and cannot be overridden by extra_metadata.
+    var.extra_metadata,
+    # tg-license-key is consumed by the Trustgrid image's built-in first-boot
+    # agent in auto-registration mode. The agent detects this key, registers the
+    # node with the Trustgrid control plane, and reboots automatically.
+    var.registration_mode == "auto" ? { "tg-license-key" = var.license } : {},
+    # tg-registration-key is an optional cluster/configuration key consumed by
+    # the Trustgrid image's built-in agent when present.
+    var.registration_key != null ? { "tg-registration-key" = var.registration_key } : {},
+    # serial-port-enable controls access to the interactive serial console.
+    # The module always owns this key; it is placed last so extra_metadata
+    # cannot override it even if a caller mistakenly includes the key there.
+    { "serial-port-enable" = var.serial_port_enable ? "1" : "0" },
+  )
+
+  shielded_instance_config {
+    enable_secure_boot          = var.enable_secure_boot
+    enable_vtpm                 = true
+    enable_integrity_monitoring = true
+  }
+
+  ## Scheduling / preemptibility.
+  ## Standard (enable_spot = false): no scheduling block — GCP defaults apply
+  ## (on_host_maintenance = MIGRATE, automatic_restart = true, preemptible = false).
+  ## Spot (enable_spot = true): provisioning_model SPOT with automatic_restart
+  ## disabled and on_host_maintenance TERMINATE as required by the GCP API.
+  dynamic "scheduling" {
+    for_each = var.enable_spot ? [1] : []
+    content {
+      provisioning_model          = "SPOT"
+      preemptible                 = true
+      automatic_restart           = false
+      on_host_maintenance         = "TERMINATE"
+      instance_termination_action = var.spot_instance_termination_action
+    }
+  }
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
