@@ -32,6 +32,7 @@ No modules.
 | Name | Type |
 |------|------|
 | [aws_eip.mgmt_ip](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eip) | resource |
+| [aws_eip_association.mgmt_ip_association](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eip_association) | resource |
 | [aws_instance.node](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
 | [aws_network_interface.data_eni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface) | resource |
 | [aws_network_interface.management_eni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface) | resource |
@@ -51,7 +52,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_appgateway_port"></a> [appgateway\_port](#input\_appgateway\_port) | Port for Application Gateway (TCP) | `number` | `443` | no |
-| <a name="input_data_security_group_ids"></a> [data\_security\_group\_ids](#input\_data\_security\_group\_ids) | Security group IDs for the data interface. Recommended to include any desired default security groups. | `list` | n/a | yes |
+| <a name="input_data_security_group_ids"></a> [data\_security\_group\_ids](#input\_data\_security\_group\_ids) | Security group IDs for the data interface. Recommended to include any desired default security groups. | `list(string)` | n/a | yes |
 | <a name="input_data_subnet_id"></a> [data\_subnet\_id](#input\_data\_subnet\_id) | Subnet ID for data traffic | `string` | n/a | yes |
 | <a name="input_enroll_endpoint"></a> [enroll\_endpoint](#input\_enroll\_endpoint) | Determines which Trustgrid Tenant the node is registered to | `string` | `"https://keymaster.trustgrid.io/v2/enroll"` | no |
 | <a name="input_instance_profile_name"></a> [instance\_profile\_name](#input\_instance\_profile\_name) | IAM Instance Profile the Trustgrid EC2 node will use for cluster route management. | `string` | `null` | no |
@@ -61,7 +62,7 @@ No modules.
 | <a name="input_is_wggateway"></a> [is\_wggateway](#input\_is\_wggateway) | Determines if security group should allow port 51820 inbound for Wireguard | `bool` | `false` | no |
 | <a name="input_key_pair_name"></a> [key\_pair\_name](#input\_key\_pair\_name) | AWS Key Pair for ubuntu user in EC2 instance | `string` | n/a | yes |
 | <a name="input_license"></a> [license](#input\_license) | The Trustgrid license given from the API or Portal | `string` | n/a | yes |
-| <a name="input_management_security_group_ids"></a> [management\_security\_group\_ids](#input\_management\_security\_group\_ids) | Security group IDs for the management interface. Recommended to include any desired default security groups. | `list` | n/a | yes |
+| <a name="input_management_security_group_ids"></a> [management\_security\_group\_ids](#input\_management\_security\_group\_ids) | Security group IDs for the management interface. Recommended to include any desired default security groups. | `list(string)` | n/a | yes |
 | <a name="input_management_subnet_id"></a> [management\_subnet\_id](#input\_management\_subnet\_id) | Subnet ID for management traffic (needs to be able to reach the internet) | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Instance name | `string` | n/a | yes |
 | <a name="input_root_block_device_encrypt"></a> [root\_block\_device\_encrypt](#input\_root\_block\_device\_encrypt) | Should the root device be encrypted in AWS | `bool` | `true` | no |
