@@ -55,7 +55,7 @@ No modules.
 | <a name="input_data_security_group_ids"></a> [data\_security\_group\_ids](#input\_data\_security\_group\_ids) | Security group IDs for the data interface. Recommended to include any desired default security groups. | `list(string)` | n/a | yes |
 | <a name="input_data_subnet_id"></a> [data\_subnet\_id](#input\_data\_subnet\_id) | Subnet ID for data traffic | `string` | n/a | yes |
 | <a name="input_enroll_endpoint"></a> [enroll\_endpoint](#input\_enroll\_endpoint) | Determines which Trustgrid Tenant the node is registered to | `string` | `"https://keymaster.trustgrid.io/v2/enroll"` | no |
-| <a name="input_instance_profile_name"></a> [instance\_profile\_name](#input\_instance\_profile\_name) | IAM Instance Profile the Trustgrid EC2 node will use for cluster route management. | `string` | `null` | no |
+| <a name="input_instance_profile_name"></a> [instance\_profile\_name](#input\_instance\_profile\_name) | IAM Instance Profile the Trustgrid EC2 node will use for managing AWS resources such as route table entries for clustered nodes. | `string` | `null` | no |
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | Node instance type | `string` | `"t3.small"` | no |
 | <a name="input_is_appgateway"></a> [is\_appgateway](#input\_is\_appgateway) | Determines if security group should allow port 443 inbound for Application Gateway | `bool` | `false` | no |
 | <a name="input_is_tggateway"></a> [is\_tggateway](#input\_is\_tggateway) | Determines if security group should allow tcp/udp port 8443 inbound for Trustgrid Tunnels | `bool` | `false` | no |
