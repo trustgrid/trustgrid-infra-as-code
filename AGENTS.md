@@ -64,7 +64,9 @@ tflint --init && tflint
 tfsec .    # or: checkov -d .
 
 # terraform-docs — https://terraform-docs.io/
-terraform-docs markdown table --output-file README.md --output-mode inject .
+# --lockfile=false prevents pinned versions from a local .terraform.lock.hcl overwriting
+# the module's declared version constraints in the README Providers table
+terraform-docs markdown table --lockfile=false --output-file README.md --output-mode inject .
 ```
 
 ### Terraform tests
@@ -107,12 +109,6 @@ run "descriptive_test_name" {
 ```
 
 Run tests with: `terraform init -backend=false && terraform test`
-
-> **Lock file side effect:** `terraform init` creates a `.terraform.lock.hcl` with pinned
-> provider versions. If you run `terraform-docs` after `terraform init`, the Providers table
-> in the README will show locked versions (e.g. `6.41.0`) instead of the module's declared
-> constraint (`>= 2.7.0`). This is misleading for reusable modules. Always revert README
-> changes caused by this before committing: `git checkout <module>/readme.md`
 
 ### CI pipeline
 
@@ -200,7 +196,7 @@ Every module README must include the TF_DOCS marker pair — never hand-edit bet
 
 For examples, keep narrative content above the markers and regenerate reference
 tables with:
-`terraform-docs markdown table --output-file README.md .`
+`terraform-docs markdown table --lockfile=false --output-file README.md --output-mode inject .`
 
 ### Shell scripts and `.tpl` bootstrap files
 
