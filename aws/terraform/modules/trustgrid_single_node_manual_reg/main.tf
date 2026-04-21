@@ -21,8 +21,6 @@ data "aws_iam_instance_profile" "instance_profile" {
   name  = var.instance_profile_name
 }
 
-data "aws_region" "current" {}
-
 data "aws_subnet" "mgmt_subnet" {
   id = var.management_subnet_id
 }
