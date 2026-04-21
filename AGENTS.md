@@ -25,8 +25,7 @@ Makefile, and no Go/Python test suite** in this repo. All quality checks are Ter
 
 ## Build / Lint / Test Commands
 
-**There are no configured test framework commands in this repo.** No `make test`, no
-`pytest`, no `go test`. All validation is Terraform CLI only.
+All validation and testing is Terraform CLI only — no `make test`, `pytest`, or `go test`.
 
 ### Standard per-directory workflow
 
@@ -36,6 +35,7 @@ Run inside each module or example directory you modify — no top-level script e
 terraform init                # required before anything else
 terraform fmt -recursive      # rewrites files in place; always commit the result
 terraform validate            # static type/reference check; requires init
+terraform test                # runs .tftest.hcl tests using mock providers (no credentials needed)
 terraform plan                # verify against provider backend; needs real credentials
 ```
 
@@ -67,10 +67,51 @@ tfsec .    # or: checkov -d .
 terraform-docs markdown table --output-file README.md --output-mode inject .
 ```
 
+### Terraform tests
+
+AWS modules use the native Terraform test framework (`.tftest.hcl`). Tests live in a
+`tests/` subdirectory inside each module directory and use mock providers so they run
+without real AWS credentials.
+
+**When to add tests:** any time you add or modify an AWS Terraform module.
+
+**What to test:**
+- Key security defaults (EIP domain, `source_dest_check`, IMDSv2, root volume encryption)
+- Conditional resource counts (`length(aws_security_group_rule.foo) == 1` when a flag is set)
+- Port/protocol correctness for gateway rules
+- Variable `validation` block rejections via `expect_failures`
+
+**Pattern:**
+
+```hcl
+# tests/module.tftest.hcl
+
+mock_provider "aws" {
+  mock_data "aws_ami"    { defaults = { id = "ami-0123456789abcdef0" } }
+  mock_data "aws_subnet" { defaults = { vpc_id = "vpc-0123456789abcdef0" } }
+  # add other data sources the module uses
+}
+
+variables {
+  # supply all required variables with safe test values
+}
+
+run "descriptive_test_name" {
+  command = plan
+
+  assert {
+    condition     = aws_eip.mgmt_ip.domain == "vpc"
+    error_message = "EIP must be allocated in VPC domain"
+  }
+}
+```
+
+Run tests with: `terraform init -backend=false && terraform test`
+
 ### CI pipeline
 
 `.github/workflows/release.yml` bumps a semver tag on merge to `main`. It does **not**
-run Terraform validate or plan. There is no automated Terraform CI at this time.
+run Terraform validate, plan, or test. There is no automated Terraform CI at this time.
 
 ### Cross-variable validation constraints require `terraform plan`
 
@@ -187,6 +228,7 @@ Every shell script and `*.sh.tpl` template must open with `#!/bin/bash` followed
 | Start every bootstrap script with `set -euo pipefail` | Write scripts that silently swallow errors |
 | Regenerate `<!-- BEGIN_TF_DOCS -->` via `terraform-docs` | Hand-edit the generated table |
 | Scope `terraform plan` to the directory being modified | Run plan against unrelated modules |
+| Add `tests/module.tftest.hcl` when adding/modifying AWS modules | Skip tests because there's no CI |
 
 ---
 
