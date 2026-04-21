@@ -130,6 +130,11 @@ resource "aws_eip" "mgmt_ip" {
   }
 }
 
+resource "aws_eip_association" "mgmt_ip_association" {
+  allocation_id        = aws_eip.mgmt_ip.id
+  network_interface_id = aws_network_interface.management_eni.id
+}
+
 resource "aws_instance" "node" {
   ami           = var.trustgrid_ami_id != null ? var.trustgrid_ami_id : data.aws_ami.trustgrid-node-ami.id
   instance_type = var.instance_type
@@ -169,12 +174,7 @@ resource "aws_instance" "node" {
   lifecycle {
     ignore_changes = all
   }
-}
 
-resource "aws_eip_association" "mgmt_ip_association" {
-  allocation_id        = aws_eip.mgmt_ip.id
-  network_interface_id = aws_network_interface.management_eni.id
-
-  depends_on = [aws_instance.node]
+  depends_on = [aws_eip_association.mgmt_ip_association]
 }
 
