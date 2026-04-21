@@ -8,10 +8,10 @@ terraform {
 }
 
 data "aws_ami" "trustgrid-node-ami" {
-  owners      = [ "079972220921" ]
-  most_recent      = true
+  owners      = ["079972220921"]
+  most_recent = true
   filter {
-    name = "name"
+    name   = "name"
     values = ["trustgrid-node-2204*"]
   }
 }
@@ -30,19 +30,19 @@ data "cloudinit_config" "cloud_init" {
   part {
     content_type = "text/cloud-config"
     filename     = "bootstrap.cfg"
-    content      = templatefile("${path.module}/templates/cloud-init.yaml.tpl", 
-    { 
-      license = var.license
-      })
+    content = templatefile("${path.module}/templates/cloud-init.yaml.tpl",
+      {
+        license = var.license
+    })
   }
 
   part {
     content_type = "text/x-shellscript"
     filename     = "bootstrap.sh"
-    content      = templatefile("${path.module}/scripts/bootstrap.sh.tpl", 
-    { 
-      region = data.aws_region.current.region,
-      enroll_endpoint = var.enroll_endpoint
+    content = templatefile("${path.module}/scripts/bootstrap.sh.tpl",
+      {
+        region          = data.aws_region.current.region,
+        enroll_endpoint = var.enroll_endpoint
     })
   }
 }
@@ -58,52 +58,52 @@ resource "aws_security_group" "node_mgmt_sg" {
 }
 
 resource "aws_security_group_rule" "tcp_tggw" {
-  count = var.is_tggateway ? 1 : 0
+  count             = var.is_tggateway ? 1 : 0
   type              = "ingress"
   from_port         = var.tggateway_port
   to_port           = var.tggateway_port
   protocol          = "tcp"
-  cidr_blocks       = [ "0.0.0.0/0" ]
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.node_mgmt_sg.id
   description       = "Trustgrid TCP Tunnel"
 }
 
 resource "aws_security_group_rule" "udp_tggw" {
-  count = var.is_tggateway ? 1 : 0
+  count             = var.is_tggateway ? 1 : 0
   type              = "ingress"
   from_port         = var.tggateway_port
   to_port           = var.tggateway_port
   protocol          = "udp"
-  cidr_blocks        = [ "0.0.0.0/0" ]
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.node_mgmt_sg.id
   description       = "Trustgrid UDP Tunnel"
 }
 
 resource "aws_security_group_rule" "udp_wggw" {
-  count = var.is_wggateway ? 1 : 0
+  count             = var.is_wggateway ? 1 : 0
   type              = "ingress"
   from_port         = var.wggateway_port
   to_port           = var.wggateway_port
   protocol          = "udp"
-  cidr_blocks        = [ "0.0.0.0/0" ]
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.node_mgmt_sg.id
   description       = "Wireguard UDP Tunnel"
 }
 
 resource "aws_security_group_rule" "tcp_appgw" {
-  count = var.is_appgateway ? 1 : 0
+  count             = var.is_appgateway ? 1 : 0
   type              = "ingress"
   from_port         = var.appgateway_port
   to_port           = var.appgateway_port
   protocol          = "tcp"
-  cidr_blocks        = [ "0.0.0.0/0" ]
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.node_mgmt_sg.id
   description       = "Trustgrid App Gateway"
 }
 
 resource "aws_network_interface" "management_eni" {
   subnet_id         = var.management_subnet_id
-  security_groups   = concat ( var.management_security_group_ids, [ aws_security_group.node_mgmt_sg.id ] )
+  security_groups   = concat(var.management_security_group_ids, [aws_security_group.node_mgmt_sg.id])
   source_dest_check = false
 
   tags = {
@@ -112,9 +112,9 @@ resource "aws_network_interface" "management_eni" {
 }
 
 resource "aws_network_interface" "data_eni" {
-  subnet_id         = var.data_subnet_id
-  security_groups   = var.data_security_group_ids
-#  private_ips       = [var.data_ip]
+  subnet_id       = var.data_subnet_id
+  security_groups = var.data_security_group_ids
+  #  private_ips       = [var.data_ip]
   source_dest_check = false
 
   tags = {
@@ -124,7 +124,6 @@ resource "aws_network_interface" "data_eni" {
 
 resource "aws_eip" "mgmt_ip" {
   domain = "vpc"
-  network_interface = aws_network_interface.management_eni.id
 
   tags = {
     Name = "${var.name}-mgmt-ip"
@@ -132,27 +131,27 @@ resource "aws_eip" "mgmt_ip" {
 }
 
 resource "aws_instance" "node" {
-  ami                     = var.trustgrid_ami_id != null ? var.trustgrid_ami_id : data.aws_ami.trustgrid-node-ami.id
-  instance_type           = var.instance_type
-  key_name                = var.key_pair_name
+  ami           = var.trustgrid_ami_id != null ? var.trustgrid_ami_id : data.aws_ami.trustgrid-node-ami.id
+  instance_type = var.instance_type
+  key_name      = var.key_pair_name
 
-  user_data_base64        = data.cloudinit_config.cloud_init.rendered
+  user_data_base64 = data.cloudinit_config.cloud_init.rendered
 
-  iam_instance_profile    = var.instance_profile_name != null ? data.aws_iam_instance_profile.instance_profile[0].name : null
+  iam_instance_profile = var.instance_profile_name != null ? data.aws_iam_instance_profile.instance_profile[0].name : null
 
   network_interface {
     network_interface_id = aws_network_interface.management_eni.id
-    device_index = 0
+    device_index         = 0
   }
 
   network_interface {
     network_interface_id = aws_network_interface.data_eni.id
-    device_index = 1
+    device_index         = 1
   }
 
   metadata_options {
     http_endpoint               = "enabled"
-    http_tokens                 = "required"  # This enforces IMDSv2
+    http_tokens                 = "required" # This enforces IMDSv2
     http_put_response_hop_limit = 1
     instance_metadata_tags      = "disabled"
   }
@@ -162,7 +161,7 @@ resource "aws_instance" "node" {
   }
 
   root_block_device {
-    encrypted = var.root_block_device_encrypt
+    encrypted   = var.root_block_device_encrypt
     volume_size = var.root_block_device_size
     volume_type = "gp3"
   }
@@ -170,5 +169,12 @@ resource "aws_instance" "node" {
   lifecycle {
     ignore_changes = all
   }
+}
+
+resource "aws_eip_association" "mgmt_ip_association" {
+  allocation_id        = aws_eip.mgmt_ip.id
+  network_interface_id = aws_network_interface.management_eni.id
+
+  depends_on = [aws_instance.node]
 }
 

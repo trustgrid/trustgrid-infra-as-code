@@ -11,7 +11,7 @@ variable "management_subnet_id" {
 }
 
 variable "management_security_group_ids" {
-  type        = list
+  type        = list(string)
   description = "Security group IDs for the management interface"
 }
 
@@ -21,7 +21,7 @@ variable "data_subnet_id" {
 }
 
 variable "data_security_group_ids" {
-  type        = list
+  type        = list(string)
   description = "Security group IDs for the data interface"
 }
 
@@ -44,27 +44,27 @@ variable "instance_type" {
   }
 }
 
-variable key_pair_name {
+variable "key_pair_name" {
   type        = string
   description = "AWS Key Pair for ubuntu user in EC2 instance"
 }
 
-variable root_block_device_encrypt {
-  type = bool
+variable "root_block_device_encrypt" {
+  type        = bool
   description = "Should the root device be encrypted in AWS"
-  default = true
+  default     = true
 }
 
-variable root_block_device_size {
-  type = number
+variable "root_block_device_size" {
+  type        = number
   description = "Size of the root volume in GB"
-  default = 30 
+  default     = 30
 }
 
-variable is_tggateway {
-  type = bool
+variable "is_tggateway" {
+  type        = bool
   description = "Determines if security group should allow tcp/udp port 8443 inbound for Trustgrid Tunnels"
-  default = false
+  default     = false
 }
 
 variable "tggateway_port" {
@@ -86,14 +86,14 @@ variable "wggateway_port" {
 }
 
 variable "is_wggateway" {
-  type = bool
+  type        = bool
   description = "Determines if security group should allow port 51820 inbound for Wireguard"
-  default = false
+  default     = false
 }
 
-variable is_appgateway {
-  type = bool
+variable "is_appgateway" {
+  type        = bool
   description = "Determines if security group should allow port 443 inbound for Application Gateway"
-  default = false
+  default     = false
 }
 
