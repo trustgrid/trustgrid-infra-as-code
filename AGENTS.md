@@ -108,6 +108,12 @@ run "descriptive_test_name" {
 
 Run tests with: `terraform init -backend=false && terraform test`
 
+> **Lock file side effect:** `terraform init` creates a `.terraform.lock.hcl` with pinned
+> provider versions. If you run `terraform-docs` after `terraform init`, the Providers table
+> in the README will show locked versions (e.g. `6.41.0`) instead of the module's declared
+> constraint (`>= 2.7.0`). This is misleading for reusable modules. Always revert README
+> changes caused by this before committing: `git checkout <module>/readme.md`
+
 ### CI pipeline
 
 `.github/workflows/release.yml` bumps a semver tag on merge to `main`. It does **not**
