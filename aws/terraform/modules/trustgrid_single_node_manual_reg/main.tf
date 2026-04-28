@@ -21,8 +21,6 @@ data "aws_iam_instance_profile" "instance_profile" {
   name  = var.instance_profile_name
 }
 
-data "aws_region" "current" {}
-
 data "aws_subnet" "mgmt_subnet" {
   id = var.management_subnet_id
 }
@@ -106,6 +104,11 @@ resource "aws_eip" "mgmt_ip" {
   }
 }
 
+resource "aws_eip_association" "mgmt_ip_association" {
+  allocation_id        = aws_eip.mgmt_ip.id
+  network_interface_id = aws_network_interface.management_eni.id
+}
+
 resource "aws_instance" "node" {
   ami           = data.aws_ami.trustgrid-node-ami.id
   instance_type = var.instance_type
@@ -136,12 +139,7 @@ resource "aws_instance" "node" {
   lifecycle {
     ignore_changes = all
   }
-}
 
-resource "aws_eip_association" "mgmt_ip_association" {
-  allocation_id        = aws_eip.mgmt_ip.id
-  network_interface_id = aws_network_interface.management_eni.id
-
-  depends_on = [aws_instance.node]
+  depends_on = [aws_eip_association.mgmt_ip_association]
 }
 
