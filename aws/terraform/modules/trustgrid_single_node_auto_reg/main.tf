@@ -172,7 +172,12 @@ resource "aws_instance" "node" {
   }
 
   lifecycle {
-    ignore_changes = all
+    prevent_destroy = true
+    ignore_changes = [
+      ami,
+      key_name,
+      user_data_base64,
+    ]
   }
 
   depends_on = [aws_eip_association.mgmt_ip_association]
