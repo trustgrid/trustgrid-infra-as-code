@@ -120,14 +120,8 @@ resource "aws_instance" "node" {
 
   iam_instance_profile = var.instance_profile_name != null ? data.aws_iam_instance_profile.instance_profile[0].name : null
 
-  network_interface {
+  primary_network_interface {
     network_interface_id = aws_network_interface.management_eni.id
-    device_index         = 0
-  }
-
-  network_interface {
-    network_interface_id = aws_network_interface.data_eni.id
-    device_index         = 1
   }
 
   tags = {
@@ -151,5 +145,11 @@ resource "aws_instance" "node" {
   }
 
   depends_on = [aws_eip_association.mgmt_ip_association]
+}
+
+resource "aws_network_interface_attachment" "data_eni_attachment" {
+  instance_id          = aws_instance.node.id
+  network_interface_id = aws_network_interface.data_eni.id
+  device_index         = 1
 }
 

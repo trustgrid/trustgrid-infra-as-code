@@ -30,6 +30,21 @@ aws ec2 modify-instance-attribute \
 
 Then remove the module block from your configuration and run `terraform apply`. If you intend to preserve the infrastructure outside of Terraform management, use `terraform state rm` on each resource instead of destroying them.
 
+### Upgrading from a previous module version (migrating to `aws_network_interface_attachment`)
+
+This module version replaced the deprecated `network_interface` blocks on `aws_instance` with `primary_network_interface` (management ENI) and a separate `aws_network_interface_attachment` resource (data ENI). For existing deployed nodes, Terraform will not know about the attachment resource and will attempt to create it — which fails because the ENI is already attached. Import the existing attachment to resolve this:
+
+```bash
+# Get the attachment ID from the AWS console or CLI:
+aws ec2 describe-network-interfaces \
+  --network-interface-ids <data-eni-id> \
+  --query 'NetworkInterfaces[0].Attachment.AttachmentId' \
+  --output text
+
+# Import it into state:
+terraform import module.<your_module_name>.aws_network_interface_attachment.data_eni_attachment <attachment-id>
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -56,6 +71,7 @@ No modules.
 | [aws_instance.node](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
 | [aws_network_interface.data_eni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface) | resource |
 | [aws_network_interface.management_eni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface) | resource |
+| [aws_network_interface_attachment.data_eni_attachment](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface_attachment) | resource |
 | [aws_security_group.node_mgmt_sg](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_security_group_rule.tcp_appgw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 | [aws_security_group_rule.tcp_tggw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
