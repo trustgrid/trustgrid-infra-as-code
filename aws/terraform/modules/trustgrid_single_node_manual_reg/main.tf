@@ -102,6 +102,10 @@ resource "aws_eip" "mgmt_ip" {
   tags = {
     Name = "${var.name}-mgmt-ip"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_eip_association" "mgmt_ip_association" {
