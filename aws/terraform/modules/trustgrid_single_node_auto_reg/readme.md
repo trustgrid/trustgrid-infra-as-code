@@ -6,21 +6,57 @@ This module deploys a single Trustgrid module on an EC2 instance in AWS and auto
 - Security group attached to the outside interface. Optionally, it will include open ports for Trustgrid gateway services.
 - EC2 instance attached to both interfaces built off the Trustgrid AMI image running the latest Trustgrid software
 - On boot, the Trustgrid license is used to register the node with the Trustgrid control plane
-- The module will then use the Trustgrid terraform provider to verify that the node has successfully registered with the Trustgrid control plane. 
+- The module will then use the Trustgrid terraform provider to verify that the node has successfully registered with the Trustgrid control plane.
 
+## Destruction Protection
+
+This module applies two layers of protection against accidental destruction of the EC2 instance and EIP, since either loss would require the node to be re-registered with the Trustgrid control plane and all associated tunnel configuration rebuilt.
+
+| Resource | Protection | Scope |
+|---|---|---|
+| `aws_instance.node` | `disable_api_termination = true` (AWS API-level) + `prevent_destroy = true` (Terraform-level) | AWS rejects termination API calls regardless of who makes them; Terraform blocks plans that would replace the instance |
+| `aws_eip.mgmt_ip` | `prevent_destroy = true` (Terraform-level) | Terraform blocks plans that would replace the EIP; EIP cannot be released while associated |
+| `aws_network_interface.management_eni` | Implicit (primary ENI) | AWS does not allow the primary network interface to be detached from a running instance |
+
+### To intentionally decommission a node
+
+Before `terraform destroy` (or removing the module block) will succeed, an operator must first disable EC2 termination protection:
+
+```bash
+aws ec2 modify-instance-attribute \
+  --instance-id <instance-id> \
+  --no-disable-api-termination
+```
+
+Then remove the module block from your configuration and run `terraform apply`. If you intend to preserve the infrastructure outside of Terraform management, use `terraform state rm` on each resource instead of destroying them.
+
+### Upgrading from a previous module version (migrating to `aws_network_interface_attachment`)
+
+This module version replaced the deprecated `network_interface` blocks on `aws_instance` with `primary_network_interface` (management ENI) and a separate `aws_network_interface_attachment` resource (data ENI). For existing deployed nodes, Terraform will not know about the attachment resource and will attempt to create it — which fails because the ENI is already attached. Import the existing attachment to resolve this:
+
+```bash
+# Get the attachment ID from the AWS console or CLI:
+aws ec2 describe-network-interfaces \
+  --network-interface-ids <data-eni-id> \
+  --query 'NetworkInterfaces[0].Attachment.AttachmentId' \
+  --output text
+
+# Import it into state:
+terraform import module.<your_module_name>.aws_network_interface_attachment.data_eni_attachment <attachment-id>
+```
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 2.7.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 2.7.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0.0 |
 | <a name="provider_cloudinit"></a> [cloudinit](#provider\_cloudinit) | n/a |
 
 ## Modules
@@ -36,6 +72,7 @@ No modules.
 | [aws_instance.node](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
 | [aws_network_interface.data_eni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface) | resource |
 | [aws_network_interface.management_eni](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface) | resource |
+| [aws_network_interface_attachment.data_eni_attachment](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/network_interface_attachment) | resource |
 | [aws_security_group.node_mgmt_sg](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group) | resource |
 | [aws_security_group_rule.tcp_appgw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |
 | [aws_security_group_rule.tcp_tggw](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule) | resource |

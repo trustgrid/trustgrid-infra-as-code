@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 2.7.0"
+      version = ">= 6.0.0"
     }
   }
 }
@@ -102,6 +102,10 @@ resource "aws_eip" "mgmt_ip" {
   tags = {
     Name = "${var.name}-mgmt-ip"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_eip_association" "mgmt_ip_association" {
@@ -116,14 +120,8 @@ resource "aws_instance" "node" {
 
   iam_instance_profile = var.instance_profile_name != null ? data.aws_iam_instance_profile.instance_profile[0].name : null
 
-  network_interface {
+  primary_network_interface {
     network_interface_id = aws_network_interface.management_eni.id
-    device_index         = 0
-  }
-
-  network_interface {
-    network_interface_id = aws_network_interface.data_eni.id
-    device_index         = 1
   }
 
   tags = {
@@ -136,10 +134,22 @@ resource "aws_instance" "node" {
     volume_type = "gp3"
   }
 
+  disable_api_termination = true
+
   lifecycle {
-    ignore_changes = all
+    prevent_destroy = true
+    ignore_changes = [
+      ami,
+      key_name,
+    ]
   }
 
   depends_on = [aws_eip_association.mgmt_ip_association]
+}
+
+resource "aws_network_interface_attachment" "data_eni_attachment" {
+  instance_id          = aws_instance.node.id
+  network_interface_id = aws_network_interface.data_eni.id
+  device_index         = 1
 }
 

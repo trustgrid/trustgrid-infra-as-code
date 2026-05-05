@@ -241,8 +241,9 @@ These patterns are consistent across the entire codebase — always follow them:
 1. `terraform { required_providers {} }` block in every `main.tf`.
 2. `snake_case` for all Terraform identifiers without exception.
 3. `set -euo pipefail` in every shell and bootstrap script.
-4. `lifecycle { ignore_changes = all }` on VM/instance resources — prevents Terraform
-   from replacing running nodes due to post-boot drift.
+4. `lifecycle { prevent_destroy = true; ignore_changes = [ami, key_name, ...] }` on VM/instance
+   resources — ignores replacement-forcing attribute drift while blocking accidental destroys.
+   In-place attributes (`instance_type`, `tags`, `iam_instance_profile`) are intentionally tracked.
 5. `<!-- BEGIN_TF_DOCS --> / <!-- END_TF_DOCS -->` markers in all module READMEs.
 6. `sensitive = true` on SSH keys and license variables.
 7. `identity { type = "SystemAssigned" }` on Azure VMs — required for cluster HA

@@ -110,3 +110,17 @@ run "instance_type_validation_rejects_invalid" {
     instance_type = "m5.large"
   }
 }
+
+run "in_place_attributes_are_tracked" {
+  command = plan
+
+  assert {
+    condition     = aws_instance.node.instance_type == var.instance_type
+    error_message = "instance_type must be tracked so in-place resize is possible via Terraform"
+  }
+
+  assert {
+    condition     = aws_instance.node.tags["Name"] == var.name
+    error_message = "Name tag must be tracked so tag corrections can be applied in-place"
+  }
+}
