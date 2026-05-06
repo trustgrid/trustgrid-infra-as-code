@@ -38,9 +38,9 @@ variable "instance_type" {
 
   validation {
     condition = (
-      can(regex("^(t3|t3a|c5|c5n|c5a|c6i|c6in|c6a)\\..+$", var.instance_type))
+      can(regex("^(t3|t3a|c5|c5n|c5a|c6i|c6in|c6a|[cm][78][ai][a-z-]*)\\..+$", var.instance_type))
     )
-    error_message = "Instance type must be a valid t3, t3a, c5, c5n, c5a, c6i, c6in, or c6a family instance type (e.g., t3.small, c6i.4xlarge)."
+    error_message = "Instance type must be a valid t3, t3a, c5, c5n, c5a, c6i, c6in, c6a, or a c7/c8/m7/m8 family instance type (e.g., t3.small, c7a.large, m8azn.large)."
   }
 }
 
@@ -95,5 +95,11 @@ variable "is_appgateway" {
   type        = bool
   description = "Determines if security group should allow port 443 inbound for Application Gateway"
   default     = false
+}
+
+variable "trustgrid_ami_id" {
+  type        = string
+  description = "Optional: Explicit Trustgrid AMI ID to use for the EC2 node. If not set, the latest matching AMI will be used."
+  default     = null
 }
 
