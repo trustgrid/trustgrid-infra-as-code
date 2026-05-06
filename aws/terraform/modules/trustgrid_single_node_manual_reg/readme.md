@@ -56,7 +56,7 @@ terraform import module.<your_module_name>.aws_network_interface_attachment.data
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.41.0 |
 
 ## Modules
 
@@ -100,6 +100,7 @@ No modules.
 | <a name="input_root_block_device_encrypt"></a> [root\_block\_device\_encrypt](#input\_root\_block\_device\_encrypt) | Should the root device be encrypted in AWS | `bool` | `true` | no |
 | <a name="input_root_block_device_size"></a> [root\_block\_device\_size](#input\_root\_block\_device\_size) | Size of the root volume in GB | `number` | `30` | no |
 | <a name="input_tggateway_port"></a> [tggateway\_port](#input\_tggateway\_port) | Port for Trustgrid Gateway (TCP/UDP tunnel) | `number` | `8443` | no |
+| <a name="input_trustgrid_ami_id"></a> [trustgrid\_ami\_id](#input\_trustgrid\_ami\_id) | Optional: Explicit Trustgrid AMI ID to use for the EC2 node. If not set, the latest matching AMI will be used. | `string` | `null` | no |
 | <a name="input_wggateway_port"></a> [wggateway\_port](#input\_wggateway\_port) | Port for Wireguard Gateway (UDP) | `number` | `51820` | no |
 
 ## Outputs
