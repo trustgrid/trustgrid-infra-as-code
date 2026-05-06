@@ -144,7 +144,7 @@ resource "aws_instance" "node" {
     volume_type = "gp3"
   }
 
-  disable_api_termination = true
+  disable_api_termination = var.disable_api_termination
 
   lifecycle {
     prevent_destroy = true

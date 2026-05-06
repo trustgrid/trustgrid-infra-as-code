@@ -103,3 +103,9 @@ variable "trustgrid_ami_id" {
   default     = null
 }
 
+variable "disable_api_termination" {
+  type        = bool
+  description = "If true, the EC2 instance cannot be terminated via the AWS API. Disable only when decommissioning the node."
+  default     = true
+}
+

@@ -113,3 +113,9 @@ variable "trustgrid_ami_id" {
   description = "Optional: Explicit Trustgrid AMI ID to use for the EC2 node. If not set, the latest matching AMI will be used."
   default     = null
 }
+
+variable "disable_api_termination" {
+  type        = bool
+  description = "If true, the EC2 instance cannot be terminated via the AWS API. Disable only when decommissioning the node."
+  default     = true
+}
