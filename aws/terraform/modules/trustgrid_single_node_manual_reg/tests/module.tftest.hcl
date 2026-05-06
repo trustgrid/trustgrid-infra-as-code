@@ -125,7 +125,7 @@ run "in_place_attributes_are_tracked" {
   }
 }
 
-run "pci_path_c7_instance_type_accepted" {
+run "gen3_c7_instance_type_accepted" {
   command = plan
 
   variables {
@@ -138,7 +138,7 @@ run "pci_path_c7_instance_type_accepted" {
   }
 }
 
-run "pci_path_c8_variant_accepted" {
+run "gen3_c8_variant_accepted" {
   command = plan
 
   variables {
@@ -151,7 +151,7 @@ run "pci_path_c8_variant_accepted" {
   }
 }
 
-run "pci_path_m8azn_accepted" {
+run "gen3_m8azn_accepted" {
   command = plan
 
   variables {
@@ -164,7 +164,7 @@ run "pci_path_m8azn_accepted" {
   }
 }
 
-run "pci_path_m7i_flex_accepted" {
+run "gen3_m7i_flex_accepted" {
   command = plan
 
   variables {

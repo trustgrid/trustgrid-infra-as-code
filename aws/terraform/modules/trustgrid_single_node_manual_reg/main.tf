@@ -8,8 +8,8 @@ terraform {
 }
 
 locals {
-  is_pci_path      = can(regex("^[cm][78][ai][a-z-]*\\..+$", var.instance_type))
-  ami_name_pattern = local.is_pci_path ? "trustgrid-node-pci-path-2204*" : "trustgrid-node-2204*"
+  is_gen3          = can(regex("^[cm][78][ai][a-z-]*\\..+$", var.instance_type))
+  ami_name_pattern = local.is_gen3 ? "trustgrid-node-gen3-2204-*" : "trustgrid-node-2204-*"
 }
 
 data "aws_ami" "trustgrid-node-ami" {
@@ -22,7 +22,7 @@ data "aws_ami" "trustgrid-node-ami" {
   }
   filter {
     name   = "tag:InterfaceNaming"
-    values = [local.is_pci_path ? "pci-path" : "pci-slot"]
+    values = [local.is_gen3 ? "gen3" : "gen2"]
   }
 }
 
