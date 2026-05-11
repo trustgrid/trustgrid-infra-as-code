@@ -1,3 +1,5 @@
+> **Deprecated** — Use the [`trustgrid_cluster_role`](../trustgrid_cluster_role) module instead. It supports both route-based and cluster IP failover in a single IAM role/profile, which is required when a node needs both capabilities. This module will not receive new features.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
