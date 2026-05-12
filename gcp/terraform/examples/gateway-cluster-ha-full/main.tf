@@ -470,8 +470,6 @@ resource "tg_network_config" "cluster" {
   interface {
     ## LAN / data NIC — reuse OS name from node A (both nodes have same interface layout)
     nic  = data.tg_node_iface_names.node_a.interfaces[1].os_name
-    dhcp = true
-
     cloud_route {
       route       = var.cluster_route_cidr
       description = "Cluster cloud route — active node advertises this CIDR to GCP"
