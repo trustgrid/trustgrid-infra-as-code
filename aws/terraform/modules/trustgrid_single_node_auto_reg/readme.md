@@ -56,8 +56,8 @@ terraform import module.<your_module_name>.aws_network_interface_attachment.data
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0.0 |
-| <a name="provider_cloudinit"></a> [cloudinit](#provider\_cloudinit) | n/a |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.41.0 |
+| <a name="provider_cloudinit"></a> [cloudinit](#provider\_cloudinit) | 2.3.7 |
 
 ## Modules
 
@@ -91,6 +91,7 @@ No modules.
 | <a name="input_appgateway_port"></a> [appgateway\_port](#input\_appgateway\_port) | Port for Application Gateway (TCP) | `number` | `443` | no |
 | <a name="input_data_security_group_ids"></a> [data\_security\_group\_ids](#input\_data\_security\_group\_ids) | Security group IDs for the data interface. Recommended to include any desired default security groups. | `list(string)` | n/a | yes |
 | <a name="input_data_subnet_id"></a> [data\_subnet\_id](#input\_data\_subnet\_id) | Subnet ID for data traffic | `string` | n/a | yes |
+| <a name="input_disable_api_termination"></a> [disable\_api\_termination](#input\_disable\_api\_termination) | If true, the EC2 instance cannot be terminated via the AWS API. Disable only when decommissioning the node. | `bool` | `true` | no |
 | <a name="input_enroll_endpoint"></a> [enroll\_endpoint](#input\_enroll\_endpoint) | Determines which Trustgrid Tenant the node is registered to | `string` | `"https://keymaster.trustgrid.io/v2/enroll"` | no |
 | <a name="input_instance_profile_name"></a> [instance\_profile\_name](#input\_instance\_profile\_name) | IAM Instance Profile the Trustgrid EC2 node will use for managing AWS resources such as route table entries for clustered nodes. | `string` | `null` | no |
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | Node instance type | `string` | `"t3.small"` | no |

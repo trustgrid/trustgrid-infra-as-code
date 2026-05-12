@@ -124,3 +124,114 @@ run "in_place_attributes_are_tracked" {
     error_message = "Name tag must be tracked so tag corrections can be applied in-place"
   }
 }
+
+run "gen3_c7_instance_type_accepted" {
+  command = plan
+
+  variables {
+    instance_type = "c7a.large"
+  }
+
+  assert {
+    condition     = aws_instance.node.instance_type == "c7a.large"
+    error_message = "c7a instance type must be accepted"
+  }
+}
+
+run "gen3_c8_variant_accepted" {
+  command = plan
+
+  variables {
+    instance_type = "c8ine.xlarge"
+  }
+
+  assert {
+    condition     = aws_instance.node.instance_type == "c8ine.xlarge"
+    error_message = "c8ine instance type must be accepted"
+  }
+}
+
+run "gen3_m8azn_accepted" {
+  command = plan
+
+  variables {
+    instance_type = "m8azn.large"
+  }
+
+  assert {
+    condition     = aws_instance.node.instance_type == "m8azn.large"
+    error_message = "m8azn instance type must be accepted"
+  }
+}
+
+run "gen3_m7i_flex_accepted" {
+  command = plan
+
+  variables {
+    instance_type = "m7i-flex.large"
+  }
+
+  assert {
+    condition     = aws_instance.node.instance_type == "m7i-flex.large"
+    error_message = "m7i-flex instance type must be accepted"
+  }
+}
+
+run "graviton_instance_type_rejected" {
+  command = plan
+
+  expect_failures = [var.instance_type]
+
+  variables {
+    instance_type = "c7g.large"
+  }
+}
+
+run "ami_data_source_runs_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(data.aws_ami.trustgrid-node-ami) == 1
+    error_message = "AMI data source must run when no trustgrid_ami_id is provided"
+  }
+}
+
+run "ami_override_skips_data_source" {
+  command = plan
+
+  variables {
+    trustgrid_ami_id = "ami-custom123456789ab"
+  }
+
+  assert {
+    condition     = length(data.aws_ami.trustgrid-node-ami) == 0
+    error_message = "AMI data source must be skipped when trustgrid_ami_id is provided"
+  }
+
+  assert {
+    condition     = aws_instance.node.ami == "ami-custom123456789ab"
+    error_message = "Instance must use the provided trustgrid_ami_id"
+  }
+}
+
+run "disable_api_termination_defaults_true" {
+  command = plan
+
+  assert {
+    condition     = aws_instance.node.disable_api_termination == true
+    error_message = "disable_api_termination must default to true"
+  }
+}
+
+run "disable_api_termination_can_be_overridden" {
+  command = plan
+
+  variables {
+    disable_api_termination = false
+  }
+
+  assert {
+    condition     = aws_instance.node.disable_api_termination == false
+    error_message = "disable_api_termination must be overridable to false for decommissioning"
+  }
+}

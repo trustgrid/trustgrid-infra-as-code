@@ -7,12 +7,22 @@ terraform {
   }
 }
 
+locals {
+  is_gen3          = can(regex("^[cm][78][ai][a-z-]*\\..+$", var.instance_type))
+  ami_name_pattern = local.is_gen3 ? "trustgrid-node-gen3-2204-*" : "trustgrid-node-2204-*"
+}
+
 data "aws_ami" "trustgrid-node-ami" {
+  count       = var.trustgrid_ami_id == null ? 1 : 0
   owners      = ["079972220921"]
   most_recent = true
   filter {
     name   = "name"
-    values = ["trustgrid-node-2204*"]
+    values = [local.ami_name_pattern]
+  }
+  filter {
+    name   = "tag:InterfaceNaming"
+    values = [local.is_gen3 ? "gen3" : "gen2"]
   }
 }
 
@@ -140,7 +150,7 @@ resource "aws_eip_association" "mgmt_ip_association" {
 }
 
 resource "aws_instance" "node" {
-  ami           = var.trustgrid_ami_id != null ? var.trustgrid_ami_id : data.aws_ami.trustgrid-node-ami.id
+  ami           = var.trustgrid_ami_id != null ? var.trustgrid_ami_id : data.aws_ami.trustgrid-node-ami[0].id
   instance_type = var.instance_type
   key_name      = var.key_pair_name
 
@@ -169,7 +179,7 @@ resource "aws_instance" "node" {
     volume_type = "gp3"
   }
 
-  disable_api_termination = true
+  disable_api_termination = var.disable_api_termination
 
   lifecycle {
     prevent_destroy = true

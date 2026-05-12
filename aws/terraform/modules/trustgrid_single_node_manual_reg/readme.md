@@ -56,7 +56,7 @@ terraform import module.<your_module_name>.aws_network_interface_attachment.data
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.41.0 |
 
 ## Modules
 
@@ -88,6 +88,7 @@ No modules.
 | <a name="input_appgateway_port"></a> [appgateway\_port](#input\_appgateway\_port) | Port for Application Gateway (TCP) | `number` | `443` | no |
 | <a name="input_data_security_group_ids"></a> [data\_security\_group\_ids](#input\_data\_security\_group\_ids) | Security group IDs for the data interface | `list(string)` | n/a | yes |
 | <a name="input_data_subnet_id"></a> [data\_subnet\_id](#input\_data\_subnet\_id) | Subnet ID for data traffic | `string` | n/a | yes |
+| <a name="input_disable_api_termination"></a> [disable\_api\_termination](#input\_disable\_api\_termination) | If true, the EC2 instance cannot be terminated via the AWS API. Disable only when decommissioning the node. | `bool` | `true` | no |
 | <a name="input_instance_profile_name"></a> [instance\_profile\_name](#input\_instance\_profile\_name) | IAM Instance Profile the Trustgrid EC2 node will use for managing AWS resources such as route table entries for clustered nodes. | `string` | `null` | no |
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | Node instance type | `string` | `"t3.small"` | no |
 | <a name="input_is_appgateway"></a> [is\_appgateway](#input\_is\_appgateway) | Determines if security group should allow port 443 inbound for Application Gateway | `bool` | `false` | no |
@@ -100,6 +101,7 @@ No modules.
 | <a name="input_root_block_device_encrypt"></a> [root\_block\_device\_encrypt](#input\_root\_block\_device\_encrypt) | Should the root device be encrypted in AWS | `bool` | `true` | no |
 | <a name="input_root_block_device_size"></a> [root\_block\_device\_size](#input\_root\_block\_device\_size) | Size of the root volume in GB | `number` | `30` | no |
 | <a name="input_tggateway_port"></a> [tggateway\_port](#input\_tggateway\_port) | Port for Trustgrid Gateway (TCP/UDP tunnel) | `number` | `8443` | no |
+| <a name="input_trustgrid_ami_id"></a> [trustgrid\_ami\_id](#input\_trustgrid\_ami\_id) | Optional: Explicit Trustgrid AMI ID to use for the EC2 node. If not set, the latest matching AMI will be used. | `string` | `null` | no |
 | <a name="input_wggateway_port"></a> [wggateway\_port](#input\_wggateway\_port) | Port for Wireguard Gateway (UDP) | `number` | `51820` | no |
 
 ## Outputs
