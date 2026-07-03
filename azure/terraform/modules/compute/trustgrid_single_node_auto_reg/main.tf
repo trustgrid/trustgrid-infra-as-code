@@ -1,11 +1,11 @@
 terraform {
   required_providers {
     cloudinit = {
-      source = "hashicorp/cloudinit"
+      source  = "hashicorp/cloudinit"
       version = "~> 2.3.5"
     }
     azurerm = {
-      source = "hashicorp/azurerm"
+      source  = "hashicorp/azurerm"
       version = "~> 4.15.0"
     }
   }
@@ -26,9 +26,9 @@ data "cloudinit_config" "config" {
           permissions = "0644"
         },
         {
-          path        = "/usr/local/trustgrid/bootstrap.sh"
-          content     = templatefile("${path.module}/templates/bootstrap.sh.tpl", {
-            tenant = var.tg_tenant,
+          path = "/usr/local/trustgrid/bootstrap.sh"
+          content = templatefile("${path.module}/templates/bootstrap.sh.tpl", {
+            tenant   = var.tg_tenant,
             platform = "azure"
           })
           permissions = "0755"
@@ -57,13 +57,13 @@ resource "azurerm_network_interface" "public" {
   location            = var.location
 
   ip_configuration {
-    name                            = "external"
-    subnet_id                       = var.public_subnet_id
-    private_ip_address_allocation   = "Dynamic"
-    public_ip_address_id            = azurerm_public_ip.public_ip.id
-    primary                         = true
+    name                          = "external"
+    subnet_id                     = var.public_subnet_id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.public_ip.id
+    primary                       = true
   }
-  
+
   lifecycle {
     ignore_changes = [
       ip_configuration
@@ -73,14 +73,14 @@ resource "azurerm_network_interface" "public" {
 }
 
 resource "azurerm_network_interface_security_group_association" "public" {
-  network_interface_id = azurerm_network_interface.public.id
+  network_interface_id      = azurerm_network_interface.public.id
   network_security_group_id = var.public_security_group_id
 }
 
 resource "azurerm_network_interface" "private" {
-  name                = "${var.name}-private-nic"
-  resource_group_name = var.resource_group_name
-  location            = var.location
+  name                  = "${var.name}-private-nic"
+  resource_group_name   = var.resource_group_name
+  location              = var.location
   ip_forwarding_enabled = true
 
   ip_configuration {
@@ -98,7 +98,7 @@ resource "azurerm_network_interface" "private" {
 }
 
 resource "azurerm_network_interface_security_group_association" "private" {
-  network_interface_id = azurerm_network_interface.private.id
+  network_interface_id      = azurerm_network_interface.private.id
   network_security_group_id = var.private_security_group_id
 }
 
@@ -116,8 +116,8 @@ resource "azurerm_linux_virtual_machine" "node" {
   location            = var.location
   size                = var.vm_size
   admin_username      = "ubuntu"
-  source_image_id     = "/communityGalleries/${var.tg_image_gallery}/images/trustgrid-node-2204-${var.tg_tenant}/versions/${var.tg_version}"
-  zone = var.availability_zone
+  source_image_id     = coalesce(var.source_image_id, "/communityGalleries/${var.tg_image_gallery}/images/trustgrid-node-2204-${var.tg_tenant}/versions/${var.tg_version}")
+  zone                = var.availability_zone
 
   network_interface_ids = [
     azurerm_network_interface.public.id,
@@ -134,11 +134,11 @@ resource "azurerm_linux_virtual_machine" "node" {
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
-    disk_size_gb = var.os_disk_size
+    disk_size_gb         = var.os_disk_size
   }
 
   identity {
-    type      = "SystemAssigned"
+    type = "SystemAssigned"
   }
 
   boot_diagnostics {}

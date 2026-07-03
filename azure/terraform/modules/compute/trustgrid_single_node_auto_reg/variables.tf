@@ -1,13 +1,13 @@
 ## General Variables
 variable "resource_group_name" {
-    type    = string
-    description = "Resource Group Name for deploying the VM"  
+  type        = string
+  description = "Resource Group Name for deploying the VM"
 }
 
-variable "location" { 
-    type    = string
-    description = "Location for creating resources"
-  
+variable "location" {
+  type        = string
+  description = "Location for creating resources"
+
 }
 
 ## VM Variables
@@ -22,29 +22,29 @@ variable "vm_size" {
   default     = "Standard_B2s"
 }
 
-variable os_disk_size {
-  type = number
+variable "os_disk_size" {
+  type        = number
   description = "Size of the OS disk volume in GB. 30GB is the recommended minimum."
-  default = 30 
+  default     = 30
 }
 
 variable "admin_ssh_username" {
-  type = string
+  type        = string
   description = "admin username"
-  default = "ubuntu"
-  
+  default     = "ubuntu"
+
 }
 
 variable "admin_ssh_key_pub" {
-  type = string
+  type        = string
   description = "SSH Public key for admin user"
-  sensitive = true
+  sensitive   = true
 }
 
 variable "availability_zone" {
-  type = string
+  type        = string
   description = "Availability Zone for the VM"
-  default = "1"  
+  default     = "1"
   validation {
     condition     = contains(["1", "2", "3"], var.availability_zone)
     error_message = "Availability zone must be one of: 1, 2, or 3"
@@ -76,24 +76,30 @@ variable "private_security_group_id" {
 variable "tg_image_gallery" {
   type        = string
   description = "Trustgrid Image Gallery (DO NOT CHANGE)"
-  default = "trustgrid-45680719-9aa7-43b9-a376-dc03bcfdb0ac"
-  
+  default     = "trustgrid-45680719-9aa7-43b9-a376-dc03bcfdb0ac"
+
 }
 
 variable "tg_tenant" {
   type        = string
   description = "Trustgrid Tenant ID (DO NOT CHANGE, valid values are 'prod', 'stage', 'test' or 'dev')"
-  default = "prod"
+  default     = "prod"
 }
 
 variable "tg_version" {
   type        = string
   description = "Trustgrid Node Appliance Version (DO NOT CHANGE)"
-  default = "latest"  
+  default     = "latest"
+}
+
+variable "source_image_id" {
+  type        = string
+  description = "Optional explicit VM image ID (e.g. a private shared-image-gallery version). When set it overrides the community-gallery reference derived from tg_image_gallery/tg_tenant/tg_version."
+  default     = null
 }
 
 variable "tg_license" {
-  type = string
-  description = "Trustgrid Appliance license. Can be generated from the portal/api or the tg_license resource in the Trustgrid Terraform provider" 
+  type        = string
+  description = "Trustgrid Appliance license. Can be generated from the portal/api or the tg_license resource in the Trustgrid Terraform provider"
 }
 
