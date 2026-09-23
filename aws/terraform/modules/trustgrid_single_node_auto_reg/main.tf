@@ -16,13 +16,12 @@ data "aws_ami" "trustgrid-node-ami" {
   count       = var.trustgrid_ami_id == null ? 1 : 0
   owners      = ["079972220921"]
   most_recent = true
+  ## No tag:* filters here: AWS does not share AMI tags cross-account, so a
+  ## tag filter matches nothing from a customer account (#50). The gen2/gen3
+  ## split rides the name pattern, which is visible everywhere.
   filter {
     name   = "name"
     values = [local.ami_name_pattern]
-  }
-  filter {
-    name   = "tag:InterfaceNaming"
-    values = [local.is_gen3 ? "gen3" : "gen2"]
   }
 }
 
