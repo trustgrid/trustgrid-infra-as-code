@@ -16,13 +16,10 @@ data "aws_ami" "trustgrid-node-ami" {
   count       = var.trustgrid_ami_id == null ? 1 : 0
   owners      = ["079972220921"]
   most_recent = true
+  ## Don't use tags as filters; see issue #50.
   filter {
     name   = "name"
     values = [local.ami_name_pattern]
-  }
-  filter {
-    name   = "tag:InterfaceNaming"
-    values = [local.is_gen3 ? "gen3" : "gen2"]
   }
 }
 
