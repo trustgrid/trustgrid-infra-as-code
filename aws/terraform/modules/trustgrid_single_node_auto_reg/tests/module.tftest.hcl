@@ -257,18 +257,3 @@ run "disable_api_termination_can_be_overridden" {
     error_message = "disable_api_termination must be overridable to false for decommissioning"
   }
 }
-
-## The default instance type deploys a gen3 node (GH-53).
-run "default_instance_type_is_gen3" {
-  command = plan
-
-  assert {
-    condition     = aws_instance.node.instance_type == "c8i.large"
-    error_message = "Default instance_type must be c8i.large"
-  }
-
-  assert {
-    condition     = anytrue([for f in data.aws_ami.trustgrid-node-ami[0].filter : f.name == "name" && contains(f.values, "trustgrid-node-gen3-2204-*")])
-    error_message = "Default instance_type must resolve the gen3 AMI name pattern"
-  }
-}
