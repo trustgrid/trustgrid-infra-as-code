@@ -21,9 +21,7 @@ The module picks the generation from `instance_type`. When `trustgrid_ami_id` is
 
 - **Default:** `instance_type` defaults to `c8i.large`, which deploys a gen3 node. Any instance family in the table above is supported; set `instance_type` to one of them to deploy a different size or a gen2 node.
 - **Gen3 requires the June 2026 Trustgrid release or later.** Keep this in mind when passing an older image via `trustgrid_ami_id`.
-- **Upgrading from a module version that defaulted to `t3.small`:** if your configuration does not set `instance_type`, pin it to `t3.small` (or the type you are running) before upgrading. Otherwise the next apply resizes the existing instance to `c8i.large` in place while `ami` stays unchanged (it is in `ignore_changes`), leaving a gen2 image on a gen3 instance and the node offline.
 - **Override with care.** Setting `trustgrid_ami_id` bypasses the generation lookup entirely. The module does not verify that the AMI you pass matches the instance family, so a gen2 AMI on a c8i instance (or a gen3 AMI on a t3) will boot with the wrong interface names and the node will not come online.
-- **ARM (Graviton) instance types are not supported** and are rejected by the `instance_type` validation.
 - **Burstable types (t3, t3a):** set CPU credits to unlimited on gateway nodes and monitor the credit balance, per the Trustgrid docs linked above.
 
 The resolved AMI is exposed as the `node-instance-ami-id` output.
@@ -69,14 +67,14 @@ terraform import module.<your_module_name>.aws_network_interface_attachment.data
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0.0 |
+|------|---------|
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.41.0 |
 
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0.0 |
+|------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.41.0 |
 
 ## Modules
 
@@ -85,7 +83,7 @@ No modules.
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [aws_eip.mgmt_ip](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eip) | resource |
 | [aws_eip_association.mgmt_ip_association](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eip_association) | resource |
 | [aws_instance.node](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) | resource |
@@ -104,7 +102,7 @@ No modules.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_appgateway_port"></a> [appgateway\_port](#input\_appgateway\_port) | Port for Application Gateway (TCP) | `number` | `443` | no |
 | <a name="input_data_security_group_ids"></a> [data\_security\_group\_ids](#input\_data\_security\_group\_ids) | Security group IDs for the data interface | `list(string)` | n/a | yes |
 | <a name="input_data_subnet_id"></a> [data\_subnet\_id](#input\_data\_subnet\_id) | Subnet ID for data traffic | `string` | n/a | yes |
@@ -127,7 +125,7 @@ No modules.
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_node-data-private-ip"></a> [node-data-private-ip](#output\_node-data-private-ip) | Private IP of the data (inside) interface. |
 | <a name="output_node-instance-ami-id"></a> [node-instance-ami-id](#output\_node-instance-ami-id) | AMI ID the instance was launched from: either trustgrid\_ami\_id or the gen2/gen3 image resolved from instance\_type. |
 | <a name="output_node-instance-id"></a> [node-instance-id](#output\_node-instance-id) | ID of the Trustgrid node EC2 instance. |
