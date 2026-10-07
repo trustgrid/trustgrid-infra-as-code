@@ -38,8 +38,8 @@ variable "name" {
 
 variable "instance_type" {
   type        = string
-  description = "Node instance type"
-  default     = "t3.small"
+  description = "EC2 instance type. The instance family selects the Trustgrid AMI generation: c7a, c7i, c8a, c8i, m7a, m7i, m8a and m8i families (and their variants such as m7i-flex or m8azn) resolve the gen3 image; t3, t3a, c5, c5n, c5a, c6i, c6in and c6a resolve the gen2 image. See the README section 'Node image and instance generation'."
+  default     = "c8i.large"
 
   validation {
     condition = (
@@ -110,7 +110,7 @@ variable "enroll_endpoint" {
 
 variable "trustgrid_ami_id" {
   type        = string
-  description = "Optional: Explicit Trustgrid AMI ID to use for the EC2 node. If not set, the latest matching AMI will be used."
+  description = "Optional explicit Trustgrid AMI ID. When null, the module looks up the most recent Trustgrid-owned AMI whose name matches the generation implied by instance_type (trustgrid-node-gen3-2204-* or trustgrid-node-2204-*). When set, the generation check is skipped, so you must ensure the AMI matches the instance family."
   default     = null
 }
 
