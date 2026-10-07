@@ -119,7 +119,7 @@ No modules.
 | <a name="input_root_block_device_encrypt"></a> [root\_block\_device\_encrypt](#input\_root\_block\_device\_encrypt) | Should the root device be encrypted in AWS | `bool` | `true` | no |
 | <a name="input_root_block_device_size"></a> [root\_block\_device\_size](#input\_root\_block\_device\_size) | Size of the root volume in GB | `number` | `30` | no |
 | <a name="input_tggateway_port"></a> [tggateway\_port](#input\_tggateway\_port) | Port for Trustgrid Gateway (TCP/UDP tunnel) | `number` | `8443` | no |
-| <a name="input_trustgrid_ami_id"></a> [trustgrid\_ami\_id](#input\_trustgrid\_ami\_id) | Optional explicit Trustgrid AMI ID. When null, the module looks up the most recent Trustgrid-owned AMI whose name matches the generation implied by instance\_type (trustgrid-node-gen3-2204-* or trustgrid-node-2204-*). When set, the generation check is skipped, so you must ensure the AMI matches the instance family. | `string` | `null` | no |
+| <a name="input_trustgrid_ami_id"></a> [trustgrid\_ami\_id](#input\_trustgrid\_ami\_id) | Optional explicit Trustgrid AMI ID. When set, the gen2/gen3 lookup based on instance\_type is skipped, so the AMI must match the instance family; see the README. | `string` | `null` | no |
 | <a name="input_wggateway_port"></a> [wggateway\_port](#input\_wggateway\_port) | Port for Wireguard Gateway (UDP) | `number` | `51820` | no |
 
 ## Outputs

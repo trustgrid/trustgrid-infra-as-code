@@ -110,7 +110,7 @@ variable "enroll_endpoint" {
 
 variable "trustgrid_ami_id" {
   type        = string
-  description = "Optional explicit Trustgrid AMI ID. When null, the module looks up the most recent Trustgrid-owned AMI whose name matches the generation implied by instance_type (trustgrid-node-gen3-2204-* or trustgrid-node-2204-*). When set, the generation check is skipped, so you must ensure the AMI matches the instance family."
+  description = "Optional explicit Trustgrid AMI ID. When set, the gen2/gen3 lookup based on instance_type is skipped, so the AMI must match the instance family; see the README."
   default     = null
 }
 
