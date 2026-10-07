@@ -33,7 +33,7 @@ variable "name" {
 
 variable "instance_type" {
   type        = string
-  description = "EC2 instance type. The instance family selects the Trustgrid AMI generation: c7a, c7i, c8a, c8i, m7a, m7i, m8a and m8i families (and their variants such as m7i-flex or m8azn) resolve the gen3 image; t3, t3a, c5, c5n, c5a, c6i, c6in and c6a resolve the gen2 image. See the README section 'Node image and instance generation'."
+  description = "EC2 instance type. The instance family determines whether the gen2 or gen3 Trustgrid AMI is used; see the README."
   default     = "c8i.large"
 
   validation {
