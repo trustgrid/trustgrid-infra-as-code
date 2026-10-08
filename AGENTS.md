@@ -75,7 +75,13 @@ AWS modules use the native Terraform test framework (`.tftest.hcl`). Tests live 
 `tests/` subdirectory inside each module directory and use mock providers so they run
 without real AWS credentials.
 
-**When to add tests:** any time you add or modify an AWS Terraform module.
+**When to add tests:** when a change introduces behavior a test can meaningfully
+catch regressing. Changing a variable default, a description, or a README does not
+need a test. Do not write assertions that only read a default or a literal back out of
+the plan (`var.x == "<default>"`); they cannot fail unless the default itself is edited,
+and the diff already shows that. A test earns its place when it exercises logic: a
+conditional `count`, a validation rule, a `templatefile()` branch, a security setting
+that could silently flip.
 
 **What to test:**
 - Key security defaults (EIP domain, `source_dest_check`, IMDSv2, root volume encryption)
@@ -230,7 +236,7 @@ Every shell script and `*.sh.tpl` template must open with `#!/bin/bash` followed
 | Start every bootstrap script with `set -euo pipefail` | Write scripts that silently swallow errors |
 | Regenerate `<!-- BEGIN_TF_DOCS -->` via `terraform-docs` | Hand-edit the generated table |
 | Scope `terraform plan` to the directory being modified | Run plan against unrelated modules |
-| Add `tests/module.tftest.hcl` when adding/modifying AWS modules | Skip tests because there's no CI |
+| Add tests in `tests/module.tftest.hcl` for logic that can regress | Add tests that only echo a default or literal back from the plan |
 
 ---
 

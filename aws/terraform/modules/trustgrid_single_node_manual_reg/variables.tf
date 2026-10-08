@@ -33,8 +33,8 @@ variable "name" {
 
 variable "instance_type" {
   type        = string
-  description = "Node instance type"
-  default     = "t3.small"
+  description = "EC2 instance type. The instance family determines whether the gen2 or gen3 Trustgrid AMI is used; see the README."
+  default     = "c8i.large"
 
   validation {
     condition = (
@@ -99,7 +99,7 @@ variable "is_appgateway" {
 
 variable "trustgrid_ami_id" {
   type        = string
-  description = "Optional: Explicit Trustgrid AMI ID to use for the EC2 node. If not set, the latest matching AMI will be used."
+  description = "Optional explicit Trustgrid AMI ID. When set, the gen2/gen3 lookup based on instance_type is skipped, so the AMI must match the instance family; see the README."
   default     = null
 }
 
